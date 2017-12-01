@@ -240,7 +240,10 @@ RETURNS uuid AS
                 dbuser="@{dbuser}" dbpwd="@{dbpwd}"
                 dumpfile="@{dumpfile}"
                 adminuser="@{adminuser}" adminpwd="@{adminpwd}"/>
-
+			<resetDomainAttribute
+				dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+				/>
         </sequential>
     </macrodef>
 
@@ -408,6 +411,42 @@ RETURNS uuid AS
 
         </sequential>
     </macrodef>
+	
+	<macrodef name="resetDomainAttribute">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB Name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+<sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>resetDomainAttribute</echo>
+            <echo>HOST: @{dbhost}, USER: @{dbuser}</echo>
+         
+
+            <!-- grant access right -->
+            <concat destfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-resetDomainAttribute.sql">
+update CNT_DOMAIN_ATTRIBUTE set value='prism.coresolutions.com' where key='mail.smtp.host';
+update CNT_DOMAIN_ATTRIBUTE set value='dev' where key='system.mode';
+
+update CNT_DOMAIN_ATTRIBUTE set value='localhost' where key ='cpm.server.host';
+update CNT_DOMAIN_ATTRIBUTE set value='http' where key ='cpm.server.protocol';
+update CNT_DOMAIN_ATTRIBUTE set value='8080' where key ='cpm.server.port';
+update CNT_DOMAIN_ATTRIBUTE set value='db' where key ='system.serialization.protocol';
+update CNT_DOMAIN_ATTRIBUTE set value='localhost' where key ='resource.redis1.host';
+
+            </concat>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                sqlfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-resetDomainAttribute.sql"
+                logfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-resetDomainAttribute.sql.log"/>
+
+        </sequential>
+    </macrodef>
+
 
     <macrodef name="exportPgsqlDump">
         <attribute name="dbhost" description="Host Name/ IP of the DB"/>
