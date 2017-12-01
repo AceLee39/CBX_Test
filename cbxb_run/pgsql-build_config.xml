@@ -1,0 +1,784 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="cbx-release" default="single-run" basedir=".">
+    <taskdef resource="net/sf/antcontrib/antlib.xml" classpath="ant-lib/ant-contrib-1.0b3.jar"/>
+    <taskdef resource="net/sf/incanto/antlib.xml" classpath="ant-lib/incanto-0.2.4.jar"/>
+
+	  <property file="settings/pgsql-generator.properties"/>
+
+	  <import file="ant-lib/${gen.db.type}-macro-db.xml"/>
+	  <import file="ant-lib/${gen.db.type}-macro-genform.xml"/>
+	  <import file="ant-lib/macro-biz.xml" />
+
+    <property name="artifact-name" value="cbx-biz"/>
+    <property name="build-ver" value="${gen.release.version}"/>
+    <!-- jar-name is depecated -->
+    <property name="jar-name" value="${artifact-name}"/>
+
+    <property name="release"  value="${basedir}/release"/>
+    <property name="release.difflist" value="${release}/updated-excel.txt"/>
+
+    <property name="lib.dir" value="${basedir}/lib"/>
+    <property name="dbscripts.dir" value="${basedir}/dbscripts"/>
+    <property name="output.dir"  value="${basedir}/output"/>
+    <property name="include.dir"  value="${basedir}/include"/>
+    <property name="working.dir"  value="${basedir}/working"/>
+    <property name="release.dir"  value="${basedir}/release"/>
+    <property name="logs.dir"  value="${basedir}/logs"/>
+    <property name="conf.dir"  value="${basedir}/conf"/>
+    <property name="temp.dir"  value="${basedir}/temp"/>
+    <property name="report.dir"  value="${basedir}/report"/>
+    <property name="excel.export.dir" value="${basedir}/excel_export"/>
+    <property name="others.dir" value="${basedir}/others"/>
+	<property name="settings.dir" value="settings" />
+    <property name="build.dir" value="${basedir}/build"/>
+    <property name="macro.db.tmpdir" value="${working.dir}/tmp"/>
+
+    <path id="project.class.path">
+        <pathelement location="${conf.dir}"/>
+        <fileset dir="${lib.dir}" includes="**/*.jar"/>
+    </path>
+
+
+    <target name="clean">
+        <delete includeemptydirs="true" dir="${logs.dir}" quiet="true" verbose="true"/>
+        <delete includeemptydirs="true" dir="${temp.dir}" quiet="true" verbose="true"/>
+        <delete includeemptydirs="true" dir="${output.dir}" quiet="true" verbose="true"/>
+        <delete includeemptydirs="true" dir="${working.dir}" quiet="true" verbose="true"/>
+        <delete includeemptydirs="true" dir="${release.dir}" quiet="true" verbose="true"/>
+        <delete includeemptydirs="true" dir="${report.dir}" quiet="true" verbose="true"/>
+        <delete includeemptydirs="true" dir="${build.dir}" quiet="true" verbose="true"/>
+        <mkdir dir="${logs.dir}"/>
+        <mkdir dir="${temp.dir}"/>
+        <mkdir dir="${report.dir}"/>
+    </target>
+
+    <target name="gen-label" description="Generate the Label SQL">
+        <if>
+            <not>
+                <isset property="cmdline.domainId"/>
+            </not>
+            <then>
+                <property name="cmdline.domainId" value="${gen.domainId}"/>
+            </then>
+        </if>
+        <genLabel labelFolderPath="${gen.target.path}/src/main/resources/labels/"
+                  targetSQLPath="${output.dir}/scripts/DML_LABEL.sql"
+                  domainId="${cmdline.domainId}"/>
+        <if><available file="${output.dir}/scripts/DML_LABEL.sql" type="file"/><then>
+            <echo>Label Generator</echo>
+            <echo>===============</echo>
+            <echo>Generated SQL can be found at following location:</echo>
+            <echo>  ${output.dir}/scripts/DML_LABEL.sql </echo>
+        </then></if>
+    </target>
+
+    <target name="gen-history" description="Generate the History Configuration SQL">
+        <fail message="Please specific a domain ID (not ROOT domain) to generate the SQL!">
+            <condition>
+                <not>
+                    <isset property="domainId"/>
+                </not>
+            </condition>
+        </fail>
+        <taskdef name="genHistorySqlTask"
+            classname="com.core.cbx.generator.util.HistoryDefSqlGenerator">
+            <classpath refid="project.class.path"/>
+        </taskdef>
+        <genHistorySqlTask
+            domainId="${domainId}"
+            resourceFile=""
+            startLine="1"
+            endLine="-1"
+            delimiter="\t"
+            overwrite="true"
+            targetFileName="${output.dir}/sql/${domainId}_history.sql"
+        />
+    </target>
+
+    <target name="release" description="Generate release build">
+        <java classname="com.core.cbx.generator.batch.RunBatchCmd" fork="true">
+            <classpath refid="project.class.path"/>
+            <arg value="${release.difflist}"/>
+        </java>
+    </target>
+
+    <target name="genBatch"
+            description="Generate batch by setting properties: gen.batch.*">
+        <var name="gen.path" value="${working.dir}/${build-ver}"/>
+        <scanAndGenExcelSql
+            excelfolder="${gen.excel.directory}"
+            modules="${gen.batch.modules}"
+            popups="${gen.batch.popups}"
+            genType="${gen.batch.target}"
+            overwritesql="${gen.batch.overwriteSql}"
+            dbuser="${gen.single.user}" dbpwd="${gen.single.pwd}" dburl="${gen.single.url}"
+            outputPath="${gen.target.path}"/>
+
+        <if>
+            <contains string="${gen.single.target}" substring="security"/>
+            <then>
+                <echo>Please also run SP_INIT_ROLE_UI_TABLE.sql after generated the security excel!</echo>
+            </then>
+        </if>
+    </target>
+
+    <target name="single-run" depends="clean">
+        <if>
+            <not>
+                <isset property="cmdline.module"/>
+            </not>
+            <then>
+                <property name="cmdline.module" value="${gen.single.module}"/>
+            </then>
+        </if>
+        <if>
+            <not>
+                <isset property="cmdline.target"/>
+            </not>
+            <then>
+                <property name="cmdline.target" value="${gen.single.target}"/>
+            </then>
+        </if>
+
+        <echo>Generate Single Excel</echo>
+        <runGenForm module="${cmdline.module}" target="${cmdline.target}"
+            dbuser="${gen.single.user}" dbpwd="${gen.single.pwd}" dbname="${gen.single.databaseName}" dbservice="${gen.single.serverName}"
+            dbport="${gen.single.port}"/>
+
+        <if>
+            <contains string="${gen.single.target}" substring="security"/>
+            <then>
+                <echo>Please also run SP_INIT_ROLE_UI_TABLE.sql after generated the security excel!</echo>
+            </then>
+        </if>
+    </target>
+
+    <target name="clean-export">
+        <delete includeemptydirs="false">
+            <fileset dir="${gen.export.output.path}" includes="**/*"/>
+        </delete>
+    </target>
+
+    <target name="gen-export" description="Generate Search View Export Template">
+        <if>
+            <not>
+                <isset property="viewId"/>
+            </not>
+            <then>
+                <echo>Property "viewId" not set.</echo>
+                <echo>To set, please use command line:</echo>
+                <echo/>
+                <echo>       ant gen-export -DviewId=[viewId/ALL] </echo>
+                <echo/>
+                <echo>Note:</echo>
+                <echo/>
+                <echo>       parameter viewId should be Search View id or ALL.</echo>
+                <echo>       ALL will generate all Search View Export Template.</echo>
+                <fail/>
+            </then>
+        </if>
+
+        <if>
+            <not>
+                <isset property="cmdline.domainId"/>
+            </not>
+            <then>
+                <property name="cmdline.domainId" value="${gen.domainId}"/>
+            </then>
+        </if>
+
+        <if>
+            <not>
+                <isset property="cmdline.export.locale"/>
+            </not>
+            <then>
+                <property name="cmdline.locale" value="${gen.export.locale}"/>
+            </then>
+        </if>
+
+        <!--
+        gen.export.template.file
+        -->
+        <genViewExportExcel
+            domainId="${cmdline.domainId}"
+            viewId="${viewId}"
+            locale="${cmdline.locale}"
+        />
+    </target>
+
+    <target name="gen-form-export" description="Generate Form Export Template">
+            <if>
+                <not>
+                    <isset property="entityName"/>
+                </not>
+                <then>
+                    <echo>Property "entityName" not set.</echo>
+                    <echo>To set, please use command line:</echo>
+                    <echo/>
+                    <echo>       ant gen-form-export -DentityName=[entityName/ALL] </echo>
+                    <echo/>
+                    <echo>Note:</echo>
+                    <echo/>
+                    <echo>       parameter entityName should be entity name or ALL.</echo>
+                    <echo>       ALL will generate all Form Export Template.</echo>
+                    <fail/>
+                </then>
+            </if>
+            <if>
+                <not>
+                    <isset property="cmdline.domainId"/>
+                </not>
+                <then>
+                    <property name="cmdline.domainId" value="${gen.domainId}"/>
+                </then>
+            </if>
+
+            <if>
+                <not>
+                    <isset property="cmdline.export.locale"/>
+                </not>
+                <then>
+                    <property name="cmdline.locale" value="${gen.form.export.locale}"/>
+                </then>
+            </if>
+
+            <!--
+            gen.form.export.template.file
+
+            <debug_echo msg="start generate form: ${entityName}."/>
+
+            <debug_echo msg="Domain id is: ${cmdline.domainId}"/>
+            <debug_echo msg="Local is: ${cmdline.locale}."/>
+                    <debug_echo msg="Out put path is: ${gen.form.export.output.path}"/>
+                    <debug_echo msg="Template file is: ${gen.form.export.template.file}"/>-->
+            <genFormExportExcel domainId="${cmdline.domainId}" entityName="${entityName}" locale="${cmdline.locale}" />
+    </target>
+
+    <target name="gen-system-message"
+            description="Generate the system message SQL">
+        <if>
+            <not>
+                <isset property="cmdline.domainId"/>
+            </not>
+            <then>
+                <property name="cmdline.domainId" value="${gen.domainId}"/>
+            </then>
+        </if>
+        <genSystemMessage messageTxtPath="${gen.target.path}/src/main/resources/SystemMessage.txt"
+                          targetSQLPath="${output.dir}/sql/systemMessage.sql"
+                          domainId="${cmdline.domainId}"/>
+
+        <if><available file="${output.dir}/sql/systemMessage.sql" type="file"/><then>
+            <echo>System Message Generator</echo>
+            <echo>========================</echo>
+            <echo>Generated SQL can be found at following location:</echo>
+            <echo>  ${output.dir}/sql/systemMessage.sql </echo>
+        </then></if>
+    </target> 
+    
+    <target name="gen-system-config"
+            description="Generate the system message SQL">
+        <if>
+            <not>
+                <isset property="cmdline.domainId"/>
+            </not>
+            <then>
+                <property name="cmdline.domainId" value="${gen.domainId}"/>
+            </then>
+        </if>
+        <genSystemConfig messageTxtPath="${gen.target.path}/src/main/resources/SystemConfig.txt"
+                         targetSQLPath="${output.dir}/sql/DML_SYS_CONFIG.sql"
+                         domainId="/"/>
+
+        <if><available file="${output.dir}/sql/DML_SYS_CONFIG.sql" type="file"/><then>
+            <echo>System Message Generator</echo>
+            <echo>========================</echo>
+            <echo>Generated SQL can be found at following location:</echo>
+            <echo>  ${output.dir}/sql/DML_SYS_CONFIG.sql </echo>
+        </then></if>
+    </target>
+
+
+    <target name="gen-password" description="Generate the password">
+        <property name="cmdline.passwordFile.path" value="${basedir}/password.txt"/>
+        <if>
+            <not><available file="${cmdline.passwordFile.path}" type="file"/></not>
+            <then>
+                <echo>Cannot find the password file:</echo>
+                <echo>  ${cmdline.passwordFile.path}</echo>
+                <echo/>
+                <echo>Following is the format of the password file.</echo>
+                <echo>Each line contains one password to be generated.</echo>
+                <echo>Example</echo>
+                <echo>-------</echo>
+                <echo>password1</echo>
+                <echo>password2</echo>
+                <echo>...</echo>
+                <echo/>
+                <echo/>
+            </then>
+            <else>
+                <java classname="com.core.cbx.security.PasswordGenerator" fork="true">
+                    <classpath>
+                        <pathelement location="settings"/>
+                        <fileset dir="${lib.dir}" includes="**/*.jar"/>
+                    </classpath>
+                    <arg value="${cmdline.passwordFile.path}"/>
+                </java>
+                <echo/>
+                <echo>Encrypted password file is generated at:</echo>
+                <echo>${cmdline.passwordFile.path}.encrypted.txt</echo>
+            </else>
+        </if>
+    </target>
+
+    <target name="dataMigration" description="Execute batch aciton">
+        <java classname="com.core.cbx.dataMigration.runBatchAction.CNTRunBatchAction" fork="true" maxmemory="512m">
+            <classpath refid="project.class.path"/>
+            <jvmarg value="-Dlog4j.configuration=file:${conf.dir}/log4j_dataMigration.properties"/>
+        </java>
+    </target> 
+    
+
+    <target name="genCustomizeAction" depends="clean" description="Generate the Customize Action">
+        <java classname="com.core.cbx.generator.CustomActionGenerator" fork="true" maxmemory="512m">
+            <classpath refid="project.class.path"/>
+            <jvmarg value="-Dgenerator.domainId=${gen.single.projectDomain}"/>
+        </java>
+        <zip destfile="${output.dir}/cbx-customize-actions-${build-ver}-src.jar"
+             basedir="${output.dir}/customAction/src/main/java" includes="**/*.java"
+        />
+    </target>
+
+	<target name="gen-refdata" depends="clean">
+        <if>
+            <not>
+                <isset property="refdata.domainId"/>
+            </not>
+            <then>
+                <property name="refdata.domainId" value="${gen.domainId}"/>
+            </then>
+        </if>
+        <echo>Generate Reference Data SQL</echo>
+        <runGenRefData domainId="${refdata.domainId}"/>
+    </target>
+
+    <!-- Use for Auto build -->
+    <include file="${gen.db.type}-build-install.xml"/>
+    <include file="${gen.db.type}-build-update.xml"/>
+
+	<!-- ant -Ddbtype=pgsql -Drelease.isIgnoreInstallation=false build-all -->
+	<target name="testxx22" depends=""
+            description="Build all. Inclues: (install), update, Excel, builder..">
+        <echo>Finished Clean Build</echo>
+        <if><istrue value="${release.isIgnoreInstallation}"/><then>
+            <echo>Will not generate the clean script</echo>
+        </then><else>
+            <antcall target="install.build-script"/>
+        </else></if>
+
+    </target>
+
+    <target name="build-all" depends="clean, retrieve-cbx-libraries, -copy-cbx-biz-excel, -cbx-referenceImpl-excel, -cbx-referenceImpl2-excel"
+            description="Build all. Inclues: (install), update, Excel, builder..">
+        <echo>Finished Clean Build</echo>
+        <if><istrue value="${release.isIgnoreInstallation}"/><then>
+            <echo>Will not generate the clean script</echo>
+        </then><else>
+            <antcall target="install.build-script"/>
+        </else></if>
+        <antcall target="update.build-script"/>
+        <antcall target="gen-template-export"/>
+        <antcall target="gen-template-and-label-dbdump"/>
+        <antcall target="gen-excel-zip"/>
+        <antcall target="gen-builder-zip"/>
+        <antcall target="gen-action-map"/>
+        <antcall target="build-others"/>
+        <antcall target="copy-release"/>
+    </target>
+
+
+    <target name="build-all-continue" depends="-copy-cbx-biz-excel,-cbx-referenceImpl-excel, -cbx-referenceImpl2-excel"
+            description="Continue the build-all process">
+        <property name="CBX_CONTINUE_BUILD" value="true"/>
+        <if><istrue value="${release.isIgnoreInstallation}"/><then>
+            <echo>Will not generate the clean script</echo>
+        </then><else>
+            <antcall target="install.continue-script"/>
+        </else></if>
+        <!--
+        <antcall target="update.continue-script"/>
+		-->
+        <antcall target="gen-template-export"/>
+        <antcall target="gen-template-and-label-dbdump"/>
+        <antcall target="gen-excel-zip"/>
+        <antcall target="gen-builder-zip"/>
+        <antcall target="build-others"/>
+        <antcall target="copy-release"/>
+    </target>
+
+    <target name="build-others" description="Build others: update report DB...">
+        <if><available file="${others.dir}/${build-ver}/${gen.db.type}" type="dir"/>
+            <then>
+                <mkdir dir="${release}/${gen.db.type}/others" />
+                <copy todir="${release}/${gen.db.type}/others" preservelastmodified="true">
+                    <fileset dir="${others.dir}/${build-ver}/${gen.db.type}">
+                        <include name="**/*"/>
+                    </fileset>
+                </copy>
+            <echo>Copied the others to folder:</echo>
+            <echo>${release}/${gen.db.type}/others</echo>
+            </then>
+        </if>
+
+        <mkdir dir="${release}/${gen.db.type}/tools-scripts" />
+        <copy todir="${release}/${gen.db.type}/tools-scripts" preservelastmodified="true">
+            <fileset dir="${dbscripts.dir}/${gen.db.type}/tools">
+                <include name="cpm_init_cache_01_run_in_cpm_db.sql"/>
+                <include name="cpm_init_cache_02_run_in_cbx_db.sql"/>
+            </fileset>
+        </copy>
+
+        <if><available file="${dbscripts.dir}/${gen.db.type}/data_migration/${build-ver}" type="dir"/><then>
+            <mkdir dir="${release}/${gen.db.type}/data_migration-scripts" />
+            <copy todir="${release}/${gen.db.type}/data_migration-scripts" preservelastmodified="true">
+                <fileset dir="${dbscripts.dir}/${gen.db.type}/data_migration/${build-ver}">
+                    <include name="**/*"/>
+                </fileset>
+            </copy>
+            <echo>Copied the Data Migration script files</echo>
+            <echo>${release}/${gen.db.type}/data_migration-scripts</echo>
+        </then></if>
+        <if><available file="${dbscripts.dir}/${gen.db.type}/hide_new_feature/${build-ver}" type="dir"/><then>
+            <mkdir dir="${release}/${gen.db.type}/hide_new_feature-scripts" />
+            <copy todir="${release}/${gen.db.type}/hide_new_feature-scripts" preservelastmodified="true">
+                <fileset dir="${dbscripts.dir}/${gen.db.type}/hide_new_feature/${build-ver}">
+                    <include name="**/*"/>
+                </fileset>
+            </copy>
+            <echo>Copied the Hide New Feature script files</echo>
+            <echo>${release}/${gen.db.type}/hide_new_feature-scripts</echo>
+
+            <echo>Create: hide_new_feature/SP_INIT_ROLE_UI_TABLE.sql (CNT-30104)</echo>
+            <concat destfile="${release}/${gen.db.type}/hide_new_feature-scripts/SP_INIT_ROLE_UI_TABLE.sql" force="yes" fixlastline="yes">
+                <filelist dir="${include.dir}/${gen.db.type}"   files="sql_header.sql"/>
+                <filelist dir="${dbscripts.dir}/${gen.db.type}" files="10210.sp_init_role_ui_table_create.sql"/>
+                <filelist dir="${dbscripts.dir}/${gen.db.type}" files="10211.sp_init_role_ui_table_apply_domain_id.sql"/>
+                <filelist dir="${dbscripts.dir}/${gen.db.type}" files="10212.sp_init_role_ui_table_drop.sql"/>
+                <filelist dir="${include.dir}/${gen.db.type}"   files="sql_footer.sql"/>
+            </concat>
+        </then></if>
+    </target>
+
+    <target name="gen-template-export" description="Generate template Export">
+        <!-- Note: This target need to use gen.update.user DB -->
+        <genTemplateZip
+        		dbhost="${gen.update.host}" dbport="${gen.update.port}" dbname="${gen.update.dbName}"
+            dbuser="${gen.update.user}" dbpwd="${gen.update.pwd}"
+            domainId="${gen.domainId}" locale="${gen.export.locale}"
+            zipFilename="${release.dir}/cbx-template-${build-ver}.zip"
+            impZipFilename="${release.dir}/cbx-import-template-${build-ver}.zip"
+        />
+    </target>
+
+    <include file="pgsql-build-temp-resources.xml"/>
+    <target name="gen-template-and-label-dbdump">
+        <antcall target="temp-resources.build-temp-resources-dbdump"/>
+    </target>
+
+    <target name="gen-excel-zip" depends="-copy-cbx-biz-excel,-cbx-referenceImpl-excel, -cbx-referenceImpl2-excel"
+            description="Generate Excel Zip file">
+        <var name="release.build.dir" value="${release.dir}"/>
+        <echo>Going to generate the Excel zip file</echo>
+        <zip destfile="${release.build.dir}/cbx-biz-excel-${build-ver}.zip"
+             basedir="${gen.excel.cbx-biz-excel.dir}"
+             excludes="**/CVS"
+        />
+        <zip destfile="${release.build.dir}/cbx-referenceImpl-${build-ver}.zip"
+             basedir="${gen.excel.cbx-referenceImpl-excel.dir}"
+             excludes="**/CVS"
+        />
+		<zip destfile="${release.build.dir}/cbx-referenceImpl2-${build-ver}.zip"
+             basedir="${gen.excel.cbx-referenceImpl2-excel.dir}"
+             excludes="**/CVS"
+        />
+    </target>
+
+    <target name="gen-builder-zip" description="Generate Builder ZIP">
+        <var name="release.build.dir" value="${release.dir}"/>
+        <echo>Going to generate the Builder zip file</echo>
+        <zip destfile="${release.build.dir}/cbx-biz-builder-${build-ver}.zip">
+            <zipfileset dir="conf" prefix="conf"/>
+            <zipfileset dir="lib" prefix="lib"/>
+            <zipfileset dir="ant-lib" prefix="ant-lib"/>
+            <zipfileset dir="settings" excludes="generator.properties" prefix="settings"/>
+            <zipfileset file="settings/generator.properties" fullpath="settings/generator.properties.orig"/>
+            <fileset dir="." includes="build*.xml,pgsql-build*.xml,*.cmd"/>
+        </zip>
+    </target>
+
+    <target name="copy-release" description="Copy the release to the target folder">
+        <if><istrue value="${gen.copyRelease}"/><then>
+            <delete dir="${gen.copyRelease.dir}" quiet="true"/>
+            <copy todir="${gen.copyRelease.dir}" preservelastmodified="true">
+                <fileset dir="${release.dir}">
+                    <include name="**/*"/>
+                </fileset>
+            </copy>
+            <echo>Copied the release to folder:</echo>
+            <echo>${gen.copyRelease.dir}</echo>
+        </then></if>
+    </target>
+
+    <target name="-cbx-referenceImpl-excel" description="Copy / Unzip the cbx-referenceImpl-excel zip file provided from cbxb-cvs">
+        <var name="gen.excel.cbx-referenceImpl-excel.dir" value="${working.dir}/${build-ver}/cbx-referenceImpl-excel"/>
+        <var name="gen.excel.cbx-referenceImpl.updated-excel-txt" value=""/>
+
+        <!-- Unzip / Copy the Excel file -->
+        <delete dir="${gen.excel.cbx-referenceImpl-excel.dir}" quiet="true"/>
+        <delete file="${working.dir}/${build-ver}/cbx-referenceImpl-excel.zip" quiet="true"/>
+        <copy todir="${working.dir}/${build-ver}">
+            <fileset dir="${gen.excel.referenceImpl.directory}">
+                <include name="cbx-referenceImpl-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-referenceImpl-.*\.zip" to="cbx-referenceImpl-excel.zip"/>
+        </copy>
+        <if><available file="${working.dir}/${build-ver}/cbx-referenceImpl-excel.zip"/><then>
+            <echo>cbx-referenceImpl-excel.zip is found</echo>
+            <unzip src="${working.dir}/${build-ver}/cbx-referenceImpl-excel.zip" dest="${gen.excel.cbx-referenceImpl-excel.dir}"/>
+        </then><else>
+            <echo>Cannot find the cbx-referenceImpl-excel.zip, copy the Excel files from:</echo>
+            <echo>${gen.excel.referenceImpl.directory}</echo>
+            <copy todir="${gen.excel.cbx-referenceImpl-excel.dir}" preservelastmodified="true">
+                <fileset dir="${gen.excel.referenceImpl.directory}">
+                    <include name="**/*"/>
+                    <exclude name="**/CVS"/>
+                    <exclude name="**/ant-lib/**"/>
+                    <exclude name="**/release/**"/>
+                    <exclude name="**/build/**"/>
+                    <exclude name="build.*"/>
+                </fileset>
+            </copy>
+        </else></if>
+
+        <if><available file="${release.dir}/updated-excel.txt"/><then>
+            <var name="gen.excel.cbx-referenceImpl.updated-excel-txt"
+                 value="${release.dir}/updated-excel.txt"/>
+        </then><else>
+            <if><available file="${gen.excel.cbx-referenceImpl-excel.dir}/updated-excel.txt"/><then>
+                <var name="gen.excel.cbx-referenceImpl.updated-excel-txt"
+                     value="${gen.excel.cbx-referenceImpl-excel.dir}/updated-excel.txt"/>
+             </then></if>
+         </else></if>
+         <echo>File path of updated-excel.txt: </echo>
+         <echo>${gen.excel.cbx-referenceImpl.updated-excel-txt}</echo>
+    </target>
+
+
+	<target name="-cbx-referenceImpl2-excel" description="Copy / Unzip the cbx-referenceImpl2-excel zip file provided from cbxb-cvs">
+        <var name="gen.excel.cbx-referenceImpl2-excel.dir" value="${working.dir}/${build-ver}/cbx-referenceImpl2-excel"/>
+        <var name="gen.excel.cbx-referenceImpl2.updated-excel-txt" value=""/>
+
+        <!-- Unzip / Copy the Excel file -->
+        <delete dir="${gen.excel.cbx-referenceImpl2-excel.dir}" quiet="true"/>
+        <delete file="${working.dir}/${build-ver}/cbx-referenceImpl2-excel.zip" quiet="true"/>
+        <copy todir="${working.dir}/${build-ver}">
+            <fileset dir="${gen.excel.referenceImpl2.directory}">
+                <include name="cbx-referenceImpl2-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-referenceImpl2-.*\.zip" to="cbx-referenceImpl2-excel.zip"/>
+        </copy>
+        <if><available file="${working.dir}/${build-ver}/cbx-referenceImpl2-excel.zip"/><then>
+            <echo>cbx-referenceImpl2-excel.zip is found</echo>
+            <unzip src="${working.dir}/${build-ver}/cbx-referenceImpl2-excel.zip" dest="${gen.excel.cbx-referenceImpl2-excel.dir}"/>
+        </then><else>
+            <echo>Cannot find the cbx-referenceImpl2-excel.zip, copy the Excel files from:</echo>
+            <echo>${gen.excel.referenceImpl2.directory}</echo>
+            <copy todir="${gen.excel.cbx-referenceImpl2-excel.dir}" preservelastmodified="true">
+                <fileset dir="${gen.excel.referenceImpl2.directory}">
+                    <include name="**/*"/>
+                    <exclude name="**/CVS"/>
+                    <exclude name="**/ant-lib/**"/>
+                    <exclude name="**/release/**"/>
+                    <exclude name="**/build/**"/>
+                    <exclude name="build.*"/>
+                </fileset>
+            </copy>
+        </else></if>
+
+        <if><available file="${release.dir}/updated-excel.txt"/><then>
+            <var name="gen.excel.cbx-referenceImpl2.updated-excel-txt"
+                 value="${release.dir}/updated-excel.txt"/>
+        </then><else>
+            <if><available file="${gen.excel.cbx-referenceImpl2-excel.dir}/updated-excel.txt"/><then>
+                <var name="gen.excel.cbx-referenceImpl2.updated-excel-txt"
+                     value="${gen.excel.cbx-referenceImpl2-excel.dir}/updated-excel.txt"/>
+             </then></if>
+         </else></if>
+         <echo>File path of updated-excel.txt: </echo>
+         <echo>${gen.excel.cbx-referenceImpl2.updated-excel-txt}</echo>
+    </target>
+
+    <target name="-copy-cbx-biz-excel" description="Copy / Unzip the cbx-biz-excel zip file provided from cbxb-cvs">
+        <var name="gen.excel.cbx-biz-excel.dir" value="${working.dir}/${build-ver}/cbx-biz-excel"/>
+        <var name="gen.excel.updated-excel-txt" value=""/>
+
+		<echo>${gen.excel.cbx-biz-excel.dir}</echo>
+        <!-- Unzip / Copy the Excel file -->
+        <delete dir="${gen.excel.cbx-biz-excel.dir}" quiet="true"/>
+        <delete file="${working.dir}/${build-ver}/cbx-biz-excel.zip" quiet="true"/>
+        <copy todir="${working.dir}/${build-ver}">
+            <fileset dir="${gen.excel.directory}">
+                <include name="cbx-biz-excel-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-biz-excel-.*\.zip" to="cbx-biz-excel.zip"/>
+        </copy>
+        <if><available file="${working.dir}/${build-ver}/cbx-biz-excel.zip"/><then>
+            <echo>cbx-biz-excel.zip is found</echo>
+            <unzip src="${working.dir}/${build-ver}/cbx-biz-excel.zip" dest="${gen.excel.cbx-biz-excel.dir}"/>
+        </then><else>
+            <echo>Cannot find the cbx-biz-excel.zip, copy the Excel files from:</echo>
+            <echo>${gen.excel.directory}</echo>
+            <copy todir="${gen.excel.cbx-biz-excel.dir}" preservelastmodified="true">
+                <fileset dir="${gen.excel.directory}">
+                    <include name="**/*"/>
+                    <exclude name="**/CVS"/>
+                    <exclude name="**/ant-lib/**"/>
+                    <exclude name="**/release/**"/>
+                    <exclude name="**/build/**"/>
+                    <exclude name="build.*"/>
+                </fileset>
+            </copy>
+        </else></if>
+
+        <if><available file="${release.dir}/updated-excel.txt"/><then>
+            <var name="gen.excel.updated-excel-txt"
+                 value="${release.dir}/updated-excel.txt"/>
+        </then><else>
+            <if><available file="${gen.excel.cbx-biz-excel.dir}/updated-excel.txt"/><then>
+                <var name="gen.excel.updated-excel-txt"
+                     value="${gen.excel.cbx-biz-excel.dir}/updated-excel.txt"/>
+             </then></if>
+         </else></if>
+         <echo>File path of updated-excel.txt: </echo>
+         <echo>${gen.excel.updated-excel-txt}</echo>
+    </target>
+
+    <target name="concat-patch-sql">
+        <echo message="./concat/cbx-biz-5.0.070.0-update-04-dml-base.default-patch.sql"/>
+        <!-- concat sql -->
+        <concat destfile="./concat/cbx-biz-5.0.070.0-update-04-dml-base.default-patch.sql"  force="yes" fixlastline="yes" encoding="UTF8" outputencoding="UTF8">
+            <fileset dir="./concat"     includes="*.sql,*.SQL" />
+        </concat>
+    </target>
+
+
+    <!-- This is a test target for checking the gen. script js
+    <target name="testAAA">
+        <scanAndGenExcelSql excelfolder="e:\cbxb\excel"
+            diffCVSTxtFile="${gen.excel.updated-excel-txt}"
+            genType="popup"
+            dbuser="${gen.single.user}" dbpwd="${gen.single.pwd}" dburl="${gen.single.url}"
+            outputPath="output"/>
+    </target>
+
+	   <target name="db-create-table" if="useMYSQL">
+        <echo message="Creating tables using: ${db.driver} ${db.url}" />
+        <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.pw}" onerror="continue">
+            <classpath>
+                <fileset dir="${db.dir}/mysql">
+                    <include name="mysql*.jar" />
+                </fileset>
+            </classpath>
+            <transaction src="${db.dir}/create-table.sql" />
+        </sql>
+    </target>
+    -->
+
+
+    <target name="checker" depends="clean">
+        <echo>Start checking</echo>
+         <if><istrue value="${release.isIgnoreInstallation}"/><then>
+            <echo>Will not generate the clean script</echo>
+        </then><else>
+            <echo>checking install sql</echo>
+            <antcall target="install.pgsql-checker"/>
+        </else></if>
+
+        <echo>checking update sql</echo>
+        <antcall target="update.pgsql-checker"/>
+
+    </target>
+
+	<path id="gen.action.map.path.id">
+        <pathelement path="${java.home}/../lib/tools.jar" />       <!-- Needed for JavaDoc -->
+        <pathelement path="${settings.dir}" />
+        <path location="${build.dir}/classes" />
+        <path location="${build.dir.}/test-classes" />
+        <fileset dir="${lib.dir}">
+            <include name="**/*.jar"/>
+            <exclude name="**/ant-*.jar"/>
+        </fileset>
+    </path>
+
+	<target name="gen-action-map" description="Build the SQL script">
+        <for list="${release.db.list}" param="db.type">
+            <sequential>
+                <var name="gen.db.type" value="@{db.type}" />
+
+                <antcall target="-genCbxActionMappingSql">
+                    <param name="dbfileActionMap" value="${release.dir}/${gen.db.type}/cbx-biz-${gen.release.version}-action-map.sql" />
+                </antcall>
+
+            </sequential>
+        </for>
+    </target>
+
+    <target name="-genCbxActionMappingSql">
+        <genCbxActionMapping scanPackage="com.core.cbx" srcdir="" jarList="cbx-core-*.jar,cbx-general-*.jar,cbx-biz-*.jar" targetFile="${dbfileActionMap}" userId="cbx" dbType="${gen.db.type}" />
+    </target>
+
+	<target name="clean-cbx-jar">
+		<echo>Delete the old cbx jar files</echo>
+		<delete>
+			<fileset dir="${lib.dir}" includes="cbx-*.jar"/>
+		</delete>
+	</target>
+
+	<target name="get-jar">
+		<get src="${nexus.repository.url}/cbx-${project}/${gen.release.version}-SNAPSHOT/maven-metadata.xml" dest="${cbx.jar.name.dir}/${project}-maven-metadata.xml" usetimestamp="true" />
+		<xmlproperty file="${cbx.jar.name.dir}/${project}-maven-metadata.xml"/>
+		<propertyregex property="version.number" input="${metadata.version}" regexp="([0-9\.]*)([0-9])([\.]?.*)" select="\1\2"/>
+		<get src="${nexus.repository.url}/cbx-${project}/${gen.release.version}-SNAPSHOT/cbx-${project}-${version.number}-${metadata.versioning.snapshot.timestamp}-${metadata.versioning.snapshot.buildNumber}.jar" dest="${lib.dir}/cbx-${project}-${version.number}.jar" usetimestamp="true" />
+	</target>
+
+	<target name="retrieve-cbx-libraries" depends="clean-cbx-jar">
+		<var name="cbx.jar.name.dir" value="${build.dir}/latest-jar"/>
+		<mkdir dir="${cbx.jar.name.dir}"/>
+
+		<echo>Retrieve the latest cbx-common jar</echo>
+		<antcall target="get-jar">
+			<param name="project" value="common" />
+        </antcall>
+		<echo>Retrieve the latest cbx-core jar</echo>
+		<antcall target="get-jar">
+			<param name="project" value="core" />
+        </antcall>
+		<echo>Retrieve the latest cbx-ui jar</echo>
+		<antcall target="get-jar">
+			<param name="project" value="ui" />
+        </antcall>
+		<echo>Retrieve the latest cbx-general jar</echo>
+		<antcall target="get-jar">
+			<param name="project" value="general" />
+        </antcall>
+		<echo>Retrieve the latest cbx-biz jar</echo>
+		<antcall target="get-jar">
+			<param name="project" value="biz" />
+        </antcall>
+		<echo>Retrieve the latest cbx-builder jar</echo>
+		<antcall target="get-jar">
+			<param name="project" value="builder" />
+        </antcall>
+	</target>
+</project>

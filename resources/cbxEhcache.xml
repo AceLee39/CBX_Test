@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="ehcache.xsd"
+             updateCheck="true" monitoring="autodetect">
+
+    <!-- Disable disk store in S60 -->
+    <!-- diskStore path="ehcacheFolder/cacheData"/ -->
+
+    <defaultCache
+        maxElementsInMemory="10000"
+        eternal="false"
+        timeToIdleSeconds="120"
+        timeToLiveSeconds="120"
+        overflowToDisk="true"
+        diskSpoolBufferSizeMB="30"
+        maxElementsOnDisk="10000000"
+        diskPersistent="false"
+        diskExpiryThreadIntervalSeconds="120"
+        memoryStoreEvictionPolicy="LRU" />
+    <cache name="restApiRepresentation"
+           maxElementsInMemory="10000"
+        timeToIdleSeconds="0"
+        timeToLiveSeconds="0"
+        eternal="false"
+        overflowToDisk="false">
+    </cache>
+    <cache name="preImportClassCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="restActionCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="restResourceCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="relatedDocProfileCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="loginUserCache"
+           maxElementsInMemory="10000"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="searchViewCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="30"
+           timeToLiveSeconds="30"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="systemConfiCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="domainCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="labelCache"
+           maxElementsInMemory="0"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="systemMessageCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="conditionCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="defaultAccessRuleCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="accessObjectCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+            <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="actionDispatcherCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="cacheExternalActiveWorkingDomain"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="domainCodelistBookCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="hclSslCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="validationCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="reportingEntityDef"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="reportingDeleteSql"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="defaultProfileCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="userAccessRuleCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="domainGroupAccessRuleCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="userNaviModules"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="userNaviEntries"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="customFieldDefCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="lscRuleRepository"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="formatProfile"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="formatField"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="sessionRegistrySessionIds"
+           maxElementsInMemory="10"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="true"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="sessionRegistryBySessionId"
+           maxElementsInMemory="1000000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="true"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="sessionRegistryPrincipals"
+           maxElementsInMemory="10"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="true"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="sessionRegistryByPrincipal"
+           maxElementsInMemory="1000000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="true"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="approvalEventHandler"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="datePatternCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="cpmFreeMarkerTemplCfg"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="HclDefCache"
+           maxElementsInMemory="1000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="HclDefIdCache"
+           maxElementsInMemory="1000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="HclTypeEntityCache"
+           maxElementsInMemory="1000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="dataMappingRuleCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="com.core.cbx.data.entity.DynamicEntity" maxElementsInMemory="1000" timeToIdleSeconds="1800" timeToLiveSeconds="1800" eternal="false" overflowToDisk="true" copyOnRead="true" copyOnWrite="true" />
+    <cache name="releaseLog"
+           maxElementsInMemory="1000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="viewEntityCache"
+           maxElementsInMemory="1000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           copyOnRead="true"
+           copyOnWrite="true"
+           overflowToDisk="false">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="personalizeViewCache"
+           maxElementsInMemory="1000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           copyOnRead="true"
+           copyOnWrite="true"
+           overflowToDisk="false">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+    <cache name="child2MainEntityIdMapping"
+           maxElementsInMemory="100000"
+           timeToIdleSeconds="7200"
+           timeToLiveSeconds="7200"
+           eternal="false"
+           copyOnRead="false"
+           copyOnWrite="false"
+           overflowToDisk="false">
+    </cache>
+    <cache name="enabledCustomFields"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="86400"
+           timeToLiveSeconds="86400"
+           eternal="false"
+           overflowToDisk="true">
+    </cache>
+    <cache name="lookupCache"
+           maxElementsInMemory="10000"
+           timeToIdleSeconds="0"
+           timeToLiveSeconds="0"
+           eternal="false"
+           overflowToDisk="true">
+           <cacheDecoratorFactory class="com.core.cbx.data.cache.ehcache.EvictOnTimestampDecoratorFactory" />
+    </cache>
+</ehcache>

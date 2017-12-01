@@ -1,0 +1,538 @@
+
+<project>
+
+    <macrodef name="execdirsql"
+              description="Rull all SQL in the dir (Depends on marcodef: execsql)
+                           Note: Need to load the dbProfile properties file (Run the task: -verify-load-dbprofile)">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dir" description="Folder that store the SQL to be executed"/>
+        <attribute name="logdir" default="" description="Folder that store the log files"/>
+        <sequential>
+            <echo>[execdirsql] SQL Folder: @{dir}</echo>
+            <fail>
+                <condition><not><available file="@{dir}" type="dir" /></not></condition>-
+= **[ ERROR ]** ===============================================================
+ Folder not found:
+ @{dir}
+===============================================================================
+            </fail>
+            <if><equals arg1="@{logdir}" arg2=""/><then>
+                <tstamp><format property="cbx-runSqlTime" pattern="yyyyMMddHHmmssSSS"/></tstamp>
+                <var name="actualLogDir" value="@{dir}.${cbx-runSqlTime}.logs"/>
+            </then><else>
+                <var name="actualLogDir" value="@{logdir}"/>
+            </else></if>
+
+            <mkdir dir="${actualLogDir}"/>
+            <for param="file">
+                <path>
+                    <sort xmlns:rcmp="antlib:org.apache.tools.ant.types.resources.comparators">
+                        <fileset dir="@{dir}" includes="*.sql" casesensitive="false"/>
+                    </sort>
+                </path>
+                <sequential>
+                    <propertyregex override="yes" property="sqlFileName" input="@{file}"
+                                   regexp=".*[\\/](.*)\.sql"
+                                   replace="\1.sql" casesensitive="false"/>
+                    <echo>SQL: ${sqlFileName}</echo>
+                    <execsql
+                        dbhost="@{dbhost}"
+                        dbport="@{dbport}"
+                        dbsid="@{dbsid}"
+                        dbuser="@{dbuser}"
+                        dbpwd="@{dbpwd}"
+                        sqlfile="@{file}"
+                        logfile="${actualLogDir}/${sqlFileName}.log"/>
+                </sequential>
+            </for>
+            <echo>Log files stored in ${actualLogDir}</echo>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="execsql" description="Run single SQL file.">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="sqlfile" description="SQL file to be run"/>
+        <attribute name="logfile" default="sql.log" description="Log file"/>
+        <sequential>
+            <var name="sqlplus.logonUser" value="@{dbuser}/@{dbpwd}"/>
+            <var name="sqlplus.logonServer"
+                 value="(DESCRIPTION=
+                            (ADDRESS=(PROTOCOL=TCP)(HOST=@{dbhost})(PORT=@{dbport}))
+                            (CONNECT_DATA=(SID=@{dbsid}))
+                        )"/>
+
+            <!-- PropertySet used for SQL substitution -->
+            <propertyset id="db.exec.properties">
+                <propertyref prefix="cbx.db" />
+            </propertyset>
+
+            <sqlplus logon="${sqlplus.logonUser}@${sqlplus.logonServer}"
+                     start="${basedir}/ant-lib/incanto-exec.sql" silent="true" failonerror="true"
+                     failOnSpoolMatch=".*SP2-[0-9]{4}.*">
+                     <!--failOnSpoolMatch=".*SP2-[0-9]{4}.*"-->
+                <arg value="&quot;@{sqlfile}&quot;"/>
+                <arg value="&quot;@{logfile}&quot;"/>
+                <propertyset refid="db.exec.properties"/>
+            </sqlplus>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="createOracleDirectory">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <attribute name="dirName" description="Oracle directory name"/>
+        <attribute name="actualPath" description="Actual path in the server"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+
+            <echo>Create Oracle Directory</echo>
+            <echo>HOST: @{dbhost}, SID: @{dbsid}, USER: @{adminuser}</echo>
+            <echo>Oracle Directory: @{dirName}</echo>
+            <concat destfile="${java.io.tmpdir}/cbx-${runSqlTime}-createOracleDirectory.sql">
+CREATE OR REPLACE DIRECTORY @{dirName} AS '@{actualPath}';
+            </concat>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${java.io.tmpdir}/cbx-${runSqlTime}-createOracleDirectory.sql"
+                logfile="${java.io.tmpdir}/cbx-${runSqlTime}-createOracleDirectory.sql.log"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="dropAndRecreateOracleDB">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+
+            <echo>Drop and create DB</echo>
+            <echo>HOST: @{dbhost}, SID: @{dbsid}, USER: @{dbuser}</echo>
+            <concat destfile="${java.io.tmpdir}/cbx-${runSqlTime}-dropAndRecreateOracleDB.sql">
+SET SERVEROUTPUT ON;
+
+BEGIN
+    EXECUTE IMMEDIATE 'DROP USER @{dbuser} CASCADE';
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error when dropping user: @{dbuser}');
+        DBMS_OUTPUT.PUT_LINE(SQLERRM);
+END;
+/
+
+CREATE USER @{dbuser} IDENTIFIED BY @{dbpwd};
+GRANT CONNECT, DBA, RESOURCE TO @{dbuser};
+            </concat>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${java.io.tmpdir}/cbx-${runSqlTime}-dropAndRecreateOracleDB.sql"
+                logfile="${java.io.tmpdir}/cbx-${runSqlTime}-dropAndRecreateOracleDB.sql.log"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="importOracleDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="schema" description="DB Dumpfile schema"/>
+        <attribute name="remapSchema" description="DB Remap schema string. e.g. cbx_biz:cbx_test"/>
+        <attribute name="directory" description="Oracle dumpfile directory" default=""/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Create IMPORT_SCHEMA script</echo>
+            <concat destfile="${java.io.tmpdir}/cbx-${runSqlTime}-importSchema.sql">
+CREATE OR REPLACE PROCEDURE IMPORT_SCHEMA (
+    dumpFilename        IN VARCHAR2,
+    sourceSchema        IN VARCHAR2,
+    destinationSchema   IN VARCHAR2,
+    directoryName       IN VARCHAR2)
+IS
+    handle          NUMBER;
+    message         VARCHAR2(2000);
+    logfileName     VARCHAR2(200);
+    jobState        VARCHAR2(200);
+    debug           BOOLEAN := TRUE;
+BEGIN
+
+    handle := dbms_datapump.open (
+    operation =>    'IMPORT',
+    job_mode =>     'SCHEMA');
+
+    IF debug = TRUE THEN
+        --'set logfile parameter'
+        SELECT 'datapump_'||to_char(SYSDATE,'YYYYMMDD')||'.log'
+        INTO logfileName
+        FROM dual;
+    dbms_datapump.add_file (
+        handle =>       handle,
+        filename =>     logfileName,
+        directory =>    directoryName,
+        filetype =>     dbms_datapump.ku$_file_type_log_file);
+    END IF;
+
+    --define table exists action: truncate
+    dbms_datapump.set_parameter (
+        handle =>   handle,
+        name =>     'TABLE_EXISTS_ACTION',
+        value =>    'TRUNCATE');
+
+    --define dumpfilename
+    dbms_datapump.add_file (
+        handle =>       handle,
+        filename =>     dumpFilename,
+        directory =>    directoryName,
+        filetype =>     dbms_datapump.ku$_file_type_dump_file);
+
+    --define schema remapping
+    dbms_datapump.metadata_remap(
+        handle =>       handle,
+        name =>         'REMAP_SCHEMA',
+        old_value =>    sourceSchema,
+        value =>        destinationSchema);
+
+    --start datapump job
+    dbms_datapump.start_job (handle);
+
+    --wait for job to finish
+    dbms_datapump.wait_for_job(handle, jobState);
+
+
+EXCEPTION
+WHEN OTHERS THEN
+    dbms_output.put_line('[Error Backtrace]');
+    dbms_output.put_line(dbms_utility.format_error_backtrace());
+    dbms_output.put_line('[Call Stack]');
+    dbms_output.put_line(dbms_utility.format_call_stack());
+
+    dbms_datapump.stop_job(handle);
+RAISE;
+END;
+/
+
+
+EXECUTE IMPORT_SCHEMA('@{dumpfile}','@{schema}','@{remapSchema}','@{directory}');
+
+            </concat>
+            <echo>Execute IMPORT_SCHEMA script</echo>
+            <echo>dumpfile: @{dumpfile}, schema: @{schema}, remapSchema: @{remapSchema}, directory: @{directory}</echo>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${java.io.tmpdir}/cbx-${runSqlTime}-importSchema.sql"
+                logfile="${java.io.tmpdir}/cbx-${runSqlTime}-importSchema.sql.log"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="exportOracleDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="schema" description="DB Dumpfile schema"/>
+        <attribute name="directory" description="Oracle dumpfile directory" default=""/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Create EXPORT_SCHEMA script</echo>
+            <concat destfile="${java.io.tmpdir}/cbx-${runSqlTime}-exportSchema.sql">
+CREATE OR REPLACE PROCEDURE EXPORT_SCHEMA (
+    dumpFilename    IN VARCHAR2,
+    sourceSchema    IN VARCHAR2,
+    directoryName   IN VARCHAR2)
+IS
+    handle          NUMBER;
+    message         VARCHAR2(2000);
+    logfileName     VARCHAR2(200);
+    jobState        VARCHAR2(200);
+    debug           BOOLEAN := TRUE;
+BEGIN
+    handle := dbms_datapump.open (
+    operation =>    'EXPORT',
+    job_mode =>     'SCHEMA');
+
+    IF debug = TRUE THEN
+        --'set logfile parameter'
+        dbms_datapump.add_file (
+            handle =>       handle,
+            filename =>     dumpFilename||'.log',
+            directory =>    directoryName,
+            filetype =>     dbms_datapump.ku$_file_type_log_file);
+    END IF;
+
+    --define dumpfilename
+    dbms_datapump.add_file (
+        handle =>       handle,
+        filename =>     dumpFilename,
+        directory =>    directoryName,
+        filetype =>     dbms_datapump.ku$_file_type_dump_file);
+
+    dbms_datapump.metadata_filter (
+        handle =>   handle,
+        name =>     'SCHEMA_EXPR',
+        Value =>    'IN('''||sourceSchema||''')');
+
+    --'start datapump job'
+    dbms_datapump.start_job (handle);
+
+    --'wait for job to finish'
+    dbms_datapump.wait_for_job(handle, jobState);
+
+EXCEPTION
+WHEN OTHERS THEN
+    dbms_output.put_line('[Error Backtrace]');
+    dbms_output.put_line(dbms_utility.format_error_backtrace());
+    dbms_output.put_line('[Call Stack]');
+    dbms_output.put_line(dbms_utility.format_call_stack());
+
+    dbms_datapump.stop_job(handle);
+RAISE;
+END;
+/
+
+
+EXECUTE EXPORT_SCHEMA('@{dumpfile}','@{schema}','@{directory}');
+
+            </concat>
+            <echo>Execute EXPORT_SCHEMA script</echo>
+            <echo>dumpfile: @{dumpfile}, schema: @{schema}, directory: @{directory}</echo>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${java.io.tmpdir}/cbx-${runSqlTime}-exportSchema.sql"
+                logfile="${java.io.tmpdir}/cbx-${runSqlTime}-exportSchema.sql.log"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="exportOracleDumpWithTableName">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="schema" description="DB Dumpfile schema"/>
+        <attribute name="table" description="Table to be exported"/>
+        <attribute name="directory" description="Oracle dumpfile directory" default=""/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Create EXPORT_TABLE script</echo>
+            <concat destfile="${java.io.tmpdir}/cbx-${runSqlTime}-exportTable.sql">
+CREATE OR REPLACE PROCEDURE EXPORT_TABLE (
+    dumpFilename    IN VARCHAR2,
+    sourceSchema    IN VARCHAR2,
+    directoryName   IN VARCHAR2,
+    tableName       IN VARCHAR2)
+IS
+    handle          NUMBER;
+    message         VARCHAR2(2000);
+    logfileName     VARCHAR2(200);
+    jobState        VARCHAR2(200);
+    debug           BOOLEAN := TRUE;
+BEGIN
+    handle := dbms_datapump.open (
+    operation => 'EXPORT',
+    job_mode  => 'TABLE');
+
+    IF debug = TRUE THEN
+        --'set logfile parameter'
+        dbms_datapump.add_file (
+            handle    => handle,
+            filename  => dumpFilename||'.log',
+            directory => directoryName,
+            filetype  => dbms_datapump.ku$_file_type_log_file);
+    END IF;
+
+    --define dumpfilename
+    dbms_datapump.add_file (
+        handle    => handle,
+        filename  => dumpFilename,
+        directory => directoryName,
+        filetype  => dbms_datapump.ku$_file_type_dump_file);
+
+    dbms_datapump.metadata_filter (
+        handle => handle,
+        name   => 'SCHEMA_EXPR',
+        value  => 'IN('''||sourceSchema||''')');
+
+    dbms_datapump.metadata_filter (
+        handle      => handle,
+        name        => 'NAME_EXPR',
+        value       => 'IN('''||tableName||''')',
+        object_type => 'TABLE');
+
+    --'start datapump job'
+    dbms_datapump.start_job (handle);
+
+    --'wait for job to finish'
+    dbms_datapump.wait_for_job(handle, jobState);
+
+EXCEPTION
+WHEN OTHERS THEN
+    dbms_output.put_line('[Error Backtrace]');
+    dbms_output.put_line(dbms_utility.format_error_backtrace());
+    dbms_output.put_line('[Call Stack]');
+    dbms_output.put_line(dbms_utility.format_call_stack());
+
+    dbms_datapump.stop_job(handle);
+RAISE;
+END;
+/
+
+EXECUTE EXPORT_TABLE('@{dumpfile}',UPPER('@{schema}'),UPPER('@{directory}'),UPPER('@{table}'));
+
+            </concat>
+            <echo>Execute EXPORT_TABLE script</echo>
+            <echo>dumpfile: @{dumpfile}, schema: @{schema}</echo>
+            <echo>directory: @{directory}, '@{table}'</echo>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${java.io.tmpdir}/cbx-${runSqlTime}-exportTable.sql"
+                logfile="${java.io.tmpdir}/cbx-${runSqlTime}-exportTable.sql.log"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="cleanOracleDb">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <sequential>
+            <echo>Cleaning DB</echo>
+            <echo>HOST: @{dbhost}, SID: @{dbsid}, USER: @{dbuser}</echo>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                sqlfile="${dbscripts.dir}/tools/remove_db_objects.sql"
+                logfile="${basedir}/logs/remove_db_objects.sql.log"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="cleanAndRestoreOracleDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="schema" description="DB Dumpfile schema"/>
+        <attribute name="directory" description="Oracle dumpfile directory" default=""/>
+        <sequential>
+            <cleanOracleDb
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"/>
+
+            <importOracleDump
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                dumpfile="@{dumpfile}" directory="@{directory}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                remapSchema="@{dbuser}"
+                schema="@{schema}"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="dropAndRestoreOracleDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="adminuser" description="Admin user"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="schema" description="DB Dumpfile schema"/>
+        <attribute name="directory" description="Oracle dumpfile directory" default=""/>
+        <attribute name="directoryPath" description="Oracle dumpfile directory Path" default=""/>
+        <sequential>
+            <createOracleDirectory
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                dirName="@{directory}" actualPath="@{directoryPath}"
+            />
+            <dropAndRecreateOracleDB
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+            />
+            <importOracleDump
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                dumpfile="@{dumpfile}" directory="@{directory}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                remapSchema="@{dbuser}"
+                schema="@{schema}"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="dropAndRemapOracleDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbsid" description="DB SID"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="remapSchema" description="Remap Schema"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="adminuser" description="Admin user"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="schema" description="DB Dumpfile schema"/>
+        <attribute name="directory" description="Oracle dumpfile directory" default=""/>
+        <attribute name="directoryPath" description="Oracle dumpfile directory Path" default=""/>
+        <sequential>
+            <createOracleDirectory
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                dirName="@{directory}" actualPath="@{directoryPath}"
+            />
+            <dropAndRecreateOracleDB
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+            />
+            <importOracleDump
+                dbhost="@{dbhost}" dbport="@{dbport}" dbsid="@{dbsid}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                dumpfile="@{dumpfile}" directory="@{directory}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                remapSchema="@{remapSchema}"
+                schema="@{schema}"/>
+        </sequential>
+    </macrodef>
+</project>

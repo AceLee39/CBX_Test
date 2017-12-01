@@ -1,0 +1,61 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.core.cbx</groupId>
+    <artifactId>cbx-test</artifactId>
+    <packaging>${pack-type}</packaging>
+    <version>${cbx.cal.version}</version>
+
+    <properties>
+        <!-- Sub-system versions to be used -->
+        <cbx.version>6.11.0</cbx.version>
+
+        <!-- other properties -->
+        <pack-type>jar</pack-type>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <task.delta.includes.6.1.0></task.delta.includes.6.1.0>
+
+    </properties>
+
+    <dependencies>
+        <!-- runtime -->
+        <dependency>
+            <groupId>com.core.cbx</groupId>
+            <artifactId>cbx-biz</artifactId>
+            <version>${cbx.cal.version}</version>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <cbx.cal.version>${cbx.version}</cbx.cal.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <cbx.cal.version>${cbx.version}-SNAPSHOT</cbx.cal.version>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+    </profiles>
+
+    <distributionManagement>
+        <repository>
+            <id>cbx_server</id>
+            <name>CBX Repository</name>
+            <url>http://192.168.2.55:8088/nexus/content/repositories/cbx-releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>cbx_server</id>
+            <name>CBX Snapshots Repository</name>
+            <url>http://192.168.2.55:8088/nexus/content/repositories/cbx-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+</project>

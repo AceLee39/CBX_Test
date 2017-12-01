@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Mort Bay Consulting//DTD Configure//EN" "http://jetty.mortbay.org/configure.dtd">
+<Configure class="org.mortbay.jetty.webapp.WebAppContext">
+ <New class="org.mortbay.jetty.plus.naming.EnvEntry">
+  <Arg></Arg>
+  <Arg>jdbc/cbxDs</Arg>
+  <Arg>
+      <New class="com.zaxxer.hikari.HikariDataSource">
+          <!--<Set name="jdbcUrl">jdbc:oracle:thin:@ora11g.zh.coresolutions.com:1521:cbx</Set>-->
+          <Set name="jdbcUrl">jdbc:postgresql://192.168.2.71:5433/cbx6_dev4</Set>
+          <Set name="username">cbx6_dev4</Set>
+          <Set name="password">p</Set><!--don't support encrypted password in jetty anymore-->
+          <Set name="minimumIdle">2</Set>
+          <Set name="maximumPoolSize">20</Set>
+          <Set name="connectionTimeout">300000</Set>
+          <Set name="idleTimeout">60000</Set>
+      </New>
+  </Arg>
+  <Arg type="boolean">true</Arg>
+ </New>
+</Configure>

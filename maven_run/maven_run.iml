@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/settings" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="lib4" level="project" />
+    <orderEntry type="library" name="lib24" level="project" />
+    <orderEntry type="library" name="lib18" level="project" />
+    <orderEntry type="library" name="lib10" level="project" />
+    <orderEntry type="library" name="ReportParser" level="project" />
+    <orderEntry type="library" name="lib36" level="project" />
+    <orderEntry type="library" name="runtime" level="project" />
+    <orderEntry type="library" name="checkstyle-6.0-all1" level="project" />
+    <orderEntry type="library" name="checkstyle-6.0-all" level="project" />
+    <orderEntry type="library" name="lib21" level="project" />
+    <orderEntry type="library" name="target" level="project" />
+    <orderEntry type="library" name="lib16" level="project" />
+    <orderEntry type="library" name="runtime2" level="project" />
+    <orderEntry type="library" name="runtime1" level="project" />
+    <orderEntry type="library" name="target1" level="project" />
+    <orderEntry type="library" name="lib6" level="project" />
+    <orderEntry type="library" name="lib9" level="project" />
+    <orderEntry type="library" name="lib27" level="project" />
+    <orderEntry type="library" name="target2" level="project" />
+    <orderEntry type="library" name="lib39" level="project" />
+    <orderEntry type="library" name="lib" level="project" />
+    <orderEntry type="library" name="lib12" level="project" />
+    <orderEntry type="library" name="lib25" level="project" />
+    <orderEntry type="library" name="lib30" level="project" />
+    <orderEntry type="library" name="lib13" level="project" />
+    <orderEntry type="library" name="TASK" level="project" />
+    <orderEntry type="library" name="ext" level="project" />
+    <orderEntry type="library" name="lib19" level="project" />
+    <orderEntry type="library" name="lib14" level="project" />
+    <orderEntry type="library" name="lib7" level="project" />
+    <orderEntry type="library" name="lib37" level="project" />
+    <orderEntry type="library" name="lib35" level="project" />
+    <orderEntry type="library" name="lib2" level="project" />
+    <orderEntry type="library" name="lib5" level="project" />
+    <orderEntry type="module" module-name="test2" />
+    <orderEntry type="module" module-name="main6" />
+    <orderEntry type="module" module-name="main13" />
+    <orderEntry type="module" module-name="main7" />
+    <orderEntry type="module" module-name="main2" />
+    <orderEntry type="module" module-name="test6" />
+    <orderEntry type="module" module-name="main12" />
+    <orderEntry type="module" module-name="main4" />
+  </component>
+</module>

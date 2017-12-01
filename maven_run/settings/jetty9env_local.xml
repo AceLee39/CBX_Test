@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Configure PUBLIC "-//Mort Bay Consulting//DTD Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+<Configure class="org.eclipse.jetty.webapp.WebAppContext">
+  <New id="cbxDs" class="org.eclipse.jetty.plus.jndi.EnvEntry">
+    <!-- scope -->
+    <Arg></Arg>
+    <!-- name -->
+    <Arg>jdbc/cbxDs</Arg>
+    <!-- value -->
+    <Arg>
+      <New class="com.zaxxer.hikari.HikariDataSource">
+        <Set name="jdbcUrl">jdbc:postgresql://localhost:5432/CBX6.11</Set>
+        <Set name="username">postgres</Set>
+        <Set name="password">p</Set>
+        <Set name="minimumIdle">2</Set>
+        <Set name="maximumPoolSize">20</Set>
+        <Set name="connectionTimeout">300000</Set>
+        <Set name="idleTimeout">60000</Set>
+      </New>
+    </Arg>
+    <!-- override -->
+    <Arg type="boolean">true</Arg>
+  </New>
+</Configure>

@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd" >
+<log4j:configuration>
+
+    <!-- appender name="stdout" class="org.apache.log4j.ConsoleAppender">
+        <param name="Threshold" value="INFO"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%-5p %m%n"/>
+        </layout>
+    </appender -->
+
+    <appender name="cntCorelog" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/CNTCore.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern" value="logs/CNTCore.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="cntMobileQcSupportRequestlog" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/rest/mobile-qc-supportRequest.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern" value="logs/rest/mobile-qc-supportRequest.log.%d{yyyy-MM-dd-a}.gz"/>
+
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="errout" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/error/error.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/error/error.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %n%m%n"/>
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelMatchFilter">
+            <param name="LevelToMatch" value="ERROR" />
+            <param name="AcceptOnMatch" value="true"/>
+        </filter>
+        <filter class="org.apache.log4j.varia.LevelMatchFilter">
+            <param name="LevelToMatch" value="FATAL" />
+            <param name="AcceptOnMatch" value="true"/>
+        </filter>
+        <filter class="org.apache.log4j.varia.DenyAllFilter" />
+    </appender>
+
+    <appender name="debuglog" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/debugs/debug.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/debugs/debug.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %c - %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="performanceUI" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/performance/ui.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern" value="logs/performance/ui.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] %t-%m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="costing" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/cost/costing.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/cost/costing.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %c - %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="uiaction" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/action/UIAction.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/action/UIAction.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="apiaction" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/action/APIAction.log"/>
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/action/APIAction.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] %t-%m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="timing" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/performance/cbx-timing.log" />
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/performance/cbx-timing.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] %X{TracingMsg} %t-%m%n" />
+        </layout>
+    </appender>
+
+    <appender name="jvmMonitoring" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/performance/cbx-jvmMonitoring.log" />
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/performance/cbx-jvmMonitoring.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] %t-%m%n" />
+        </layout>
+    </appender>
+
+    <appender name="requestTracking" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/rest/requestTracking.log" />
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/rest/requestTracking.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n" />
+        </layout>
+    </appender> 
+    
+    <appender name="actionDispatcher" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/action/actionDispatcher.log" />
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/action/actionDispatcher.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n" />
+        </layout>
+    </appender> 
+    
+    <appender name="cntSql" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/sql/cntSql.log" />
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/sql/cntSql.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n" />
+        </layout>
+    </appender>
+
+
+
+    <!-- enable this appender for log management tool integration -->
+    <!--
+    <appender name="audit" class="org.apache.log4j.net.SocketAppender">
+        <param name="port" value="[log4j_port]" />
+        <param name="remoteHost" value="[logstash_host]" />
+    </appender>
+    -->
+
+<!--
+     <category name="com.core.cbx.data.search.SearchCriterionProcessor" additivity="false">
+        <priority value="ERROR"/>
+        <appender-ref ref="errout"/>
+    </category>
+
+    <category name="com.core.cbx.data.security.DataSecurityUtil" additivity="false">
+        <priority value="ERROR"/>
+        <appender-ref ref="errout"/>
+    </category> --> 
+    
+    <category name="com.core.cbx.action.ActionDispatcher" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="actionDispatcher"/>
+    </category>
+
+
+    <category name="com.core.cbx.ui.zk.action" additivity="true">
+        <priority value="WARN"/>
+        <appender-ref ref="debuglog"/>
+    </category>
+
+    <category name="com.core.cbx.action" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="debuglog"/>
+    </category>
+
+    <category name="com.core.cbx.action.exception.EntityContent" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="debuglog"/>
+    </category>
+
+    <category name="com.core.cbx.security.condition.CntCondition" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="debuglog"/>
+    </category>
+
+    <category name="jdbc.connection" additivity="true">
+        <priority value="DEBUG"/>
+        <appender-ref ref="cntSql"/>
+    </category>
+
+    <category name="jdbc.sqltiming" additivity="true">
+        <priority value="DEBUG"/>
+        <appender-ref ref="cntSql"/>
+    </category> 
+    <category name="com.core.cbx.database" additivity="true">
+    <priority value="DEBUG"/>
+    <appender-ref ref="cntSql"/>
+    </category> 
+    <category name="org.apache.ibatis.jdbc" additivity="true">
+    <priority value="DEBUG"/>
+    <appender-ref ref="cntSql"/>
+    </category>
+<category name="org.apache.ibatis.logging" additivity="true">
+    <priority value="DEBUG"/>
+    <appender-ref ref="cntSql"/>
+    </category>
+<category name="java.sql" additivity="true">
+    <priority value="DEBUG"/>
+    <appender-ref ref="cntSql"/>
+    </category>
+
+
+
+    <category name="com.core" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="cntCorelog"/>
+    </category>
+
+   <category name="com.cbx" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="cntCorelog"/>
+    </category>
+
+    <category name="com.core.cbx.ui.zk.pm.CbxPerformanceMeter" additivity="true">
+        <priority value="WARN"/>
+        <appender-ref ref="performanceUI"/>
+    </category>
+
+    <category name="com.core.cbx.costing" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="costing"/>
+    </category>
+
+    <category name="com.core.cbx.ui.zk.action.ActionExecutor" additivity="true">
+        <priority value="WARN"/>
+        <appender-ref ref="uiaction"/>
+    </category>
+
+    <category name="com.cbx.ws.rest.action.APIActionExecutor" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="apiaction"/>
+    </category>
+
+    <category name="com.cbx.ws.rest.mobile.qc.supportRequest.action" additivity="true">
+        <priority value="WARN"/>
+        <appender-ref ref="cntMobileQcSupportRequestlog"/>
+    </category>
+
+
+    <category name="com.core.cbx.common.timing.LoggingStopWatch" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="timing"/>
+    </category>
+
+    <category name="com.core.cbx.monitor" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="jvmMonitoring"/>
+    </category>
+
+    <category name="com.cbx.ws.rest" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="requestTracking"/>
+    </category>
+
+    <root>
+        <priority value="ERROR"/>
+        <appender-ref ref="errout"/>
+        <!--appender-ref ref="stdout"/-->
+    </root>
+
+</log4j:configuration>

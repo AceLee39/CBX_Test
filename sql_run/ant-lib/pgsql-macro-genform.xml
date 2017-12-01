@@ -1,0 +1,527 @@
+<project>
+
+    <!-- @deprecated -->
+    <macrodef name="createDBSettingPropertiesFile" description="Create DBSetting.properties file">
+        <!-- mandatory parameters -->
+        <attribute name="dbuser"/>
+        <attribute name="dbpwd"/>
+        <attribute name="dbname"/>
+        <attribute name="dbhost"/>
+        <attribute name="dbport"/>
+        <!-- optional parameters -->
+        <attribute name="domain" default="${gen.domainId}"/>
+        <attribute name="resource" default="${gen.db.resourceName}"/>
+        <attribute name="dsType" default="${gen.db.dsType}"/>
+        <attribute name="dbMinimumIdle" default="${gen.db.minimumIdle}"/>
+        <attribute name="dbMaximumPoolSize" default="${gen.db.maximumPoolSize}"/>
+        <sequential>
+            <echo>Create DBSetting.properties with following settings:</echo>
+            <echo>DB URL: @{dburl}</echo>
+            <echo>DB User: @{dbUser}</echo>
+
+            <!-- create DBSetting.properties for the DB connection -->
+            <propertyfile file="DBSetting.properties"
+                          comment="AUTO GENERATED. To amend, plesae edit settings/generator.properties" >
+                <entry key="resource.ds1.domainId" value="@{domain}"/>
+                <entry key="resource.ds1.resourceName" value="@{resource}"/>
+                <entry key="resource.ds1.type" value="@{dsType}"/>
+                <entry key="resource.ds1.minimumIdle" value="@{dbMinimumIdle}"/>
+                <entry key="resource.ds1.maximumPoolSize" value="@{dbMaximumPoolSize}"/>
+                <entry key="resource.ds1.username" value="@{dbUser}"/>
+                <entry key="resource.ds1.password" value="@{dbpwd}"/>
+                <entry key="resource.ds1.jdbcUrl" value="jdbc:postgresql://@{dbhost}:@{dbport}/@{dbname}"/>
+            </propertyfile>
+        </sequential>
+    </macrodef>
+
+
+    <macrodef name="createGeneratorPropertiesFile" description="Create the generator properties file for pgsql db">
+        <!-- mandatory parameters -->
+        <attribute name="filename"/>
+        <attribute name="module"/>
+        <attribute name="target"/>
+        <attribute name="dbuser"/>
+        <attribute name="dbpwd"/>
+        <attribute name="dbname" description="DB Name"/>
+				<attribute name="dbservice" description="DB Service"/>
+				<attribute name="dbport" description="DB port"/>
+        <attribute name="targetPath"/>
+        <!-- optional parameters -->
+        <attribute name="mode" default="${gen.mode}"/>
+        <attribute name="domainId" default="${gen.domainId}"/>
+        <attribute name="dbType" default="${gen.db.type}"/>
+        <attribute name="desc" default=""/>
+        <attribute name="dbResource" default="${gen.db.resourceName}"/>
+        <attribute name="dsType" default="${gen.db.dsType}"/>
+        <attribute name="dbMinimumIdle" default="${gen.db.minimumIdle}"/>
+        <attribute name="dbMaximumPoolSize" default="${gen.db.maximumPoolSize}"/>
+        <attribute name="reportDomain" default="${gen.reporting.domainId}"/>
+        <attribute name="reportModule" default="${gen.reporting.module}"/>
+        <attribute name="reportDbType" default="${gen.reporting.dbType}"/>
+        <attribute name="templatePath" default="${gen.template.path}"/>
+        <attribute name="linguals" default="${gen.linguals}"/>
+        <attribute name="excelDir" default="${gen.excel.directory}"/>
+        <attribute name="outputPath" default="${output.dir}"/>
+        <attribute name="genTryCatchForDDLAlter" default="${gen.genTryCatchForDDLAlter}"/>
+
+        <sequential>
+            <echo message="Creating CNTGenerator used properties file..."/>
+            <echo message="File name: @{filename}"/>
+            <echo message="Module: [@{module}]"/>
+            <echo message="Target: [@{target}]"/>
+            <echo message="gen.db.user: [@{dbuser}]"/>
+            <echo message="gen.db.pwd: [@{dbpwd}]"/>
+            <echo message="gen.db.dbname: [@{dbname}]"/>
+            <echo message="gen.db.dbservice: [@{dbservice}]"/>
+            <echo message="gen.db.dbport: [@{dbport}]"/>
+            <echo message="gen.target.path: [@{targetPath}]"/>
+
+            <delete file="@{filename}"/>
+            <propertyfile file="@{filename}"
+                          comment="AUTO GENERATED. To amend, please edit settings/generator.properties" >
+                <entry key="mode" value="@{mode}"/>
+                <entry key="module" value="@{module}"/>
+                <entry key="target" value="@{target}"/>
+                <entry key="reporting.domainId" value="@{reportDomain}"/>
+                <entry key="reporting.module" value="@{reportModule}"/>
+                <entry key="reporting.dbType" value="@{reportDbType}"/>
+                <entry key="db.type" value="@{dbType}"/>
+                <entry key="target.path" value="@{targetPath}"/>
+                <entry key="template.path" value="@{templatePath}"/>
+                <entry key="linguals" value="@{linguals}"/>
+                <entry key="excel.directory" value="@{excelDir}/"/>
+                <entry key="output.path" value="@{outputPath}"/>
+                <entry key="resource.ds1.domainId" value="@{domainId}"/>
+                <entry key="resource.ds1.resourceName" value="@{dbResource}"/>
+                <entry key="resource.ds1.type" value="@{dsType}"/>
+                <entry key="resource.ds1.minimumIdle" value="@{dbMinimumIdle}"/>
+                <entry key="resource.ds1.maximumPoolSize" value="@{dbMaximumPoolSize}"/>
+                <entry key="resource.ds1.username" value="@{dbUser}"/>
+                <entry key="resource.ds1.password" value="@{dbpwd}"/>
+                <entry key="resource.ds1.jdbcUrl" value="jdbc:postgresql://@{dbservice}:@{dbport}/@{dbname}"/>
+                <entry key="genTryCatchForDDLAlter" value="@{genTryCatchForDDLAlter}"/>
+            </propertyfile>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="runGenForm" description="Generate the form">
+        <!-- mandatory parameters -->
+        <attribute name="module" default="test"/>
+        <attribute name="target"/>
+        <!-- optional parameters -->
+        <attribute name="propertiesFile" default="builder.properties"/>
+        <attribute name="dbuser" default="${gen.db.user}"/>
+        <attribute name="dbpwd" default="${gen.db.pwd}"/>
+
+        <attribute name="targetpath" default="${gen.target.path}"/>
+        <attribute name="outputpath" default="${output.dir}"/>
+        <attribute name="genformLogPath" default="logs/genForm.output.log"/>
+        <attribute name="exceldir" default="${gen.excel.directory}"/>
+        <!-- create three attribute for pgsql -->
+				<attribute name="dbname" description="DB Name"/>
+				<attribute name="dbservice" description="DB Service"/>
+				<attribute name="dbport" description="DB port"/>
+				<attribute name="genTryCatchForDDLAlter" default="${gen.genTryCatchForDDLAlter}"/>
+
+        <sequential>
+            <createGeneratorPropertiesFile filename="@{propertiesFile}"
+                module="@{module}" target="@{target}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}" dbname="@{dbname}" dbservice="@{dbservice}"
+                targetPath="@{targetpath}" dbport="@{dbport}"
+                outputPath="@{outputpath}"
+                excelDir="@{exceldir}" genTryCatchForDDLAlter="@{genTryCatchForDDLAlter}"/>
+            <echo>Start generation</echo>
+            <echo>Java output: @{genformLogPath}</echo>
+            <java classname="com.core.cbx.generator.Main" fork="true" maxmemory="2048m"
+                output="@{genformLogPath}" append="true" failonerror="true">
+                <sysproperty key="system.disableDistributedCache" value="true"/>
+                <sysproperty key="java.io.tmpdir" value="${basedir}/temp"/>
+                <classpath refid="project.class.path"/>
+            </java>
+            <echo>Finished generation</echo>
+        </sequential>
+    </macrodef>
+
+
+
+    <macrodef name="runGenSystem" description="Generate the system">
+        <attribute name="target"/>
+        <sequential>
+            <runGenForm module="" target="@{target}"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="createRefDataGeneratorPropertiesFile" description="Create the ref data generator properties file">
+        <!-- mandatory parameters -->
+        <attribute name="filename"/>
+        <attribute name="domainId"/>
+        <attribute name="targetPath"/>
+        <attribute name="refdataDir"/>
+        <!-- optional parameters -->
+        <attribute name="refdataType" default="${gen.refdata.type}"/>
+        <attribute name="mode" default="${gen.mode}"/>
+        <attribute name="linguals" default="${gen.linguals}"/>
+        <attribute name="dbType" default="${gen.db.type}"/>
+
+        <sequential>
+            <echo message="Creating RefData Generator used properties file..."/>
+            <echo message="File name: @{filename}"/>
+            <echo message="DomainId: [@{domainId}]"/>
+            <echo message="gen.target.path: [@{targetPath}]"/>
+            <echo message="refdata.dir: [@{refdataDir}]"/>
+            <echo message="refdata.type: [@{refdataType}]"/>
+            <delete file="@{filename}"/>
+            <propertyfile file="@{filename}"
+                          comment="AUTO GENERATED. To amend, please edit settings/generator.properties" >
+                <entry key="mode" value="@{mode}"/>
+                <entry key="domainId" value="@{domainId}"/>
+                <entry key="linguals" value="@{linguals}"/>
+                <entry key="refdata.directory" value="@{refdataDir}"/>
+                <entry key="refdata.type" value="@{refdataType}"/>
+                <entry key="target.path" value="@{targetPath}"/>
+                <entry key="db.type" value="@{dbType}"/>
+            </propertyfile>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="runGenRefData" description="Generate the Ref Data">
+        <!-- mandatory parameters -->
+        <attribute name="domainId"/>
+        <!-- optional parameters -->
+        <attribute name="propertiesFile" default="builder.properties"/>
+        <attribute name="targetPath" default="${gen.target.path}"/>
+        <attribute name="refdataDir" default="${gen.refdata.directory}"/>
+        <attribute name="refdataType" default="${gen.refdata.type}"/>
+
+        <sequential>
+            <createRefDataGeneratorPropertiesFile filename="@{propertiesFile}"
+                domainId="@{domainId}" targetPath="@{targetPath}"
+                refdataDir="@{refdataDir}" refdataType="@{refdataType}"/>
+
+            <java classname="com.core.cbx.referencedata.generator.Main" fork="true" maxmemory="512m">
+                <sysproperty key="system.disableDistributedCache" value="true"/>
+                <classpath refid="project.class.path"/>
+            </java>
+        </sequential>
+    </macrodef>
+
+    <scriptdef name="reIndexSql" language="javascript"
+               src="${basedir}/ant-lib/reindex-sql.js"
+               description="Reindex SQL in a folder">
+        <!-- Note: All attributes will be in lower case.
+                   When use, it can be mix of upper and lower case.
+                   e.g. outputpath ==> outputPath
+        -->
+        <attribute name="folder"/>
+        <attribute name="filetype"/>
+    </scriptdef>
+
+    <scriptdef name="scanAndGenExcelSql" language="javascript"
+               src="${basedir}/ant-lib/pgsql-scan-and-gen-excel-sql.js"
+               description="Scan Excel folder and generate SQL">
+        <!-- Note: All attributes will be in lower case.
+                   When use, it can be mix of upper and lower case.
+                   e.g. outputpath ==> outputPath
+        -->
+        <attribute name="excelfolder"/>
+        <attribute name="startmodule"/>
+        <attribute name="outputpath"/>
+        <attribute name="gentype"/>
+        <attribute name="dbuser"/>
+        <attribute name="dbpwd"/>
+        <attribute name="dbname"/>
+        <attribute name="dbport"/>
+        <attribute name="dbservice"/>
+        <attribute name="modules"/>
+        <attribute name="popups"/>
+        <attribute name="overwritesql"/>
+        <attribute name="diffcvstxtfile"/>
+        <attribute name="gentrycatchforddlalter"/>
+    </scriptdef>
+
+    <!-- ONLY Used in cbxb-git -->
+    <macrodef name="genTemplateZip"
+              description="Generate the template zip file">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="domainId" description="Ddomain ID"/>
+        <attribute name="locale" description="Locale"/>
+        <attribute name="zipFilename" description="Filename of the ZIP file"/>
+        <attribute name="impZipFilename" description="Filename of the import template ZIP file"/>
+        <sequential>
+			<mkdir dir="${basedir}/logs"/>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                sqlfile="${dbscripts.dir}/${gen.db.type}/tools/remove_non-standard_views.sql"
+                logfile="${basedir}/logs/remove_non-standard_views.sql.log"/>
+            <var name="temp.working.dir" value="${working.dir}/${build-ver}/template"/>
+            <delete dir="${temp.working.dir}" quiet="true"/>
+            <genViewExportExcel domainId="@{domainId}" locale="@{locale}" viewId="ALL"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}" dbservice="@{dbhost}" dbname="@{dbname}"
+				dbport="@{dbport}"
+                outputPath="${temp.working.dir}/expTmpl"/>
+
+            <genFormExportExcel domainId="@{domainId}" locale="@{locale}" entityName="ALL"
+            dbuser="@{dbuser}" dbpwd="@{dbpwd}" dbservice="@{dbhost}" dbname="@{dbname}" dbport="@{dbport}"
+            outputPath="${temp.working.dir}/impTmpl"/>
+
+            <var name="cbx-biz-res.dir" value="${gen.cbx-biz.directory}/src/main/resources"/>
+            <!-- copy Common.jasper -->
+            <if><available file="${cbx-biz-res.dir}/jasper/Common.jasper"/><then>
+                <copy file="${cbx-biz-res.dir}/jasper/Common.jasper" todir="${temp.working.dir}/jasper"/>
+            </then><else>
+                <echo>Cannot find the Common.jasper in cbx-biz: ${gen.cbx-biz.directory}</echo>
+                <echo>Copy from ${conf.dir}</echo>
+                <copy file="${conf.dir}/Common.jasper" todir="${temp.working.dir}/jasper"/>
+            </else></if>
+            <!-- copy quoteExport.xlsm -->
+            <if><available file="${cbx-biz-res.dir}/expTmpl/quoteExport.xlsm"/><then>
+                <copy file="${cbx-biz-res.dir}/expTmpl/quoteExport.xlsm" todir="${temp.working.dir}/expTmpl/"/>
+            </then><else>
+                <echo>Cannot find the quoteExport.xlsm in cbx-biz: ${gen.cbx-biz.directory}</echo>
+                <echo>Copy from ${conf.dir}</echo>
+                <copy file="${conf.dir}/quoteExport.xlsm" todir="${temp.working.dir}/expTmpl/"/>
+            </else></if>
+            <!-- copy quoteExport.xlsx -->
+            <if><available file="${cbx-biz-res.dir}/expTmpl/quoteExport.xlsx"/><then>
+                <copy file="${cbx-biz-res.dir}/expTmpl/quoteExport.xlsx" todir="${temp.working.dir}/expTmpl/"/>
+            </then><else>
+                <echo>Cannot find the quoteExport.xlsx in cbx-biz: ${gen.cbx-biz.directory}</echo>
+                <echo>Copy from ${conf.dir}</echo>
+                <copy file="${conf.dir}/quoteExport.xlsx" todir="${temp.working.dir}/expTmpl/"/>
+            </else></if>
+            <mkdir dir="${temp.working.dir}/expTmplWork"/>
+            <zip destfile="@{zipFilename}"
+                 basedir="${temp.working.dir}"
+                 excludes="impTmpl/**"
+            />
+            <zip destfile="@{impZipFilename}"
+                 basedir="${temp.working.dir}/impTmpl"
+            />
+        </sequential>
+    </macrodef>
+
+    <!-- ONLY Used in cbxb-git -->
+    <macrodef name="genViewExportExcel"
+              description="Generate the view Excel templates">
+        <!-- optional parameters -->
+        <attribute name="domainId"/>
+        <attribute name="locale"/>
+        <attribute name="viewId"/>
+        <attribute name="templateFile" default="${gen.export.template.file}"/>
+        <attribute name="titleRow" default="${gen.export.title.row}"/>
+        <attribute name="titleCol" default="${gen.export.title.col}"/>
+        <attribute name="dataRow" default="${gen.export.dataRow}"/>
+        <attribute name="propertiesFile" default="builder.properties"/>
+        <attribute name="dbuser" default=""/>
+        <attribute name="dbpwd" default=""/>
+		<attribute name="dbname" description="DB Name"/>
+		<attribute name="dbservice" description="DB Service"/>
+		<attribute name="dbport" description="DB port"/>
+
+        <attribute name="targetPath" default="${gen.export.output.path}"/>
+        <attribute name="outputPath" default="${gen.export.output.path}"/>
+        <attribute name="genformLogPath" default="logs/genViewExportExcel.output.log"/>
+
+        <sequential>
+            <if><not><equals arg1="@{dbuser}" arg2=""/></not><then>
+                <echo>Creating the properties file: @{propertiesFile}</echo>
+                <createGeneratorPropertiesFile filename="@{propertiesFile}"
+                    module="" target=""
+                    dbuser="@{dbuser}" dbpwd="@{dbpwd}" dbname="@{dbname}" dbservice="@{dbservice}" dbport="@{dbport}"
+                    targetPath="@{targetPath}" outputPath="@{outputPath}"/>
+            </then></if>
+            <if><not><available file="@{propertiesFile}"/></not><then>
+                <fail>Cannot find the properties file: @{propertiesFile}</fail>
+            </then></if>
+            <echo>Start generate view Excel template: @{viewId}</echo>
+            <echo>Domain ID: @{domainId}</echo>
+            <echo>Output: @{outputPath}</echo>
+            <echo>Template: @{templateFile}</echo>
+            <java classname="com.core.cbx.generator.util.ExportTemplateGenerator" fork="true" maxmemory="512m"
+                output="@{genformLogPath}" append="true">
+                <sysproperty key="system.disableDistributedCache" value="true"/>
+                <classpath refid="project.class.path"/>
+                <arg value="@{domainId}"/>
+                <arg value="@{viewId}"/>
+                <arg value="@{locale}"/>
+                <arg value="@{templateFile}"/>
+                <arg value="@{outputPath}"/>
+                <arg value="@{titleRow}"/>
+                <arg value="@{titleCol}"/>
+                <arg value="@{dataRow}"/>
+            </java>
+        </sequential>
+    </macrodef>
+
+    <!-- ONLY Used in cbxb-git -->
+    <macrodef name="genFormExportExcel"
+              description="Generate the view Excel templates">
+        <!-- optional parameters -->
+        <attribute name="domainId"/>
+        <attribute name="locale"/>
+        <attribute name="entityName"/>
+        <attribute name="templateFile" default="${gen.form.export.template.file}"/>
+        <attribute name="entityRow" default="${gen.form.export.title.entityRow}"/>
+        <attribute name="uiLabelRow" default="${gen.form.export.title.uiLabelRow}"/>
+        <attribute name="fieldIdRow" default="${gen.form.export.title.fieldIdRow}"/>
+        <attribute name="titleCol" default="${gen.form.export.title.col}"/>
+        <attribute name="dataRow" default="${gen.form.export.dataRow}"/>
+        <attribute name="propertiesFile" default="builder.properties"/>
+        <attribute name="dbuser" default=""/>
+        <attribute name="dbpwd" default=""/>
+		<attribute name="dbname" description="DB Name"/>
+		<attribute name="dbservice" description="DB Service"/>
+		<attribute name="dbport" description="DB port"/>
+
+        <attribute name="targetPath" default="${gen.form.export.output.path}"/>
+        <attribute name="outputPath" default="${gen.form.export.output.path}"/>
+        <attribute name="genformLogPath" default="logs/genFormExportExcel.output.log"/>
+
+        <sequential>
+            <if><not><equals arg1="@{dbuser}" arg2=""/></not><then>
+                <echo>Creating the properties file: @{propertiesFile}</echo>
+                <createGeneratorPropertiesFile filename="@{propertiesFile}"
+                    module="" target=""
+                    dbuser="@{dbuser}" dbpwd="@{dbpwd}"  dbname="@{dbname}" dbservice="@{dbservice}" dbport="@{dbport}"
+                    targetPath="@{targetPath}" outputPath="@{outputPath}"/>
+            </then></if>
+            <if><not><available file="@{propertiesFile}"/></not><then>
+                <fail>Cannot find the properties file: @{propertiesFile}</fail>
+            </then></if>
+            <echo>Start generate Form Excel template: @{viewId}</echo>
+            <echo>Domain ID: @{domainId}</echo>
+            <echo>Output: @{outputPath}</echo>
+            <echo>Template: @{templateFile}</echo>
+            <java classname="com.core.cbx.generator.util.FormTemplateGenerator" fork="true" maxmemory="512m"
+                output="@{genformLogPath}" append="true">
+                <sysproperty key="system.disableDistributedCache" value="true"/>
+                <classpath refid="project.class.path"/>
+                <arg value="@{domainId}"/>
+                <arg value="@{entityName}"/>
+                <arg value="@{locale}"/>
+                <arg value="@{templateFile}"/>
+                <arg value="@{outputPath}"/>
+                <arg value="@{entityRow}"/>
+                <arg value="@{uiLabelRow}"/>
+                <arg value="@{fieldIdRow}"/>
+                <arg value="@{titleCol}"/>
+                <arg value="@{dataRow}"/>
+            </java>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="genSystemMessage">
+        <attribute name="messageTxtPath" description="Path of SystemMessage TXT file"/>
+        <attribute name="targetSQLPath" description="Path of the generated SQL"/>
+        <attribute name="domainId" default="/" description="Domain ID, default to be ROOT (/)"/>
+        <attribute name="entityVersion" default="1" description="Entity version of SystemMessage, default to be 1"/>
+        <sequential>
+            <if>
+                <not><available file="@{messageTxtPath}" type="file"/></not>
+                <then>
+                    <echo>Cannot find the message file:</echo>
+                    <echo>@{messageTxtPath}</echo>
+                    <echo>System Message SQL will not be generated.</echo>
+                </then>
+                <else>
+                    <!--<createDBSettingPropertiesFile dbuser="${gen.db.user}" dbpwd="${gen.db.pwd}" dburl="${gen.db.url}"/>-->
+                    <taskdef name="gentSystemMessageSqlTask"
+                             classname="com.core.cbx.generator.util.SystemMessageSqlGenerator">
+                        <classpath refid="project.class.path"/>
+                    </taskdef>
+                    <gentSystemMessageSqlTask
+                        domainId="@{domainId}"
+                        resourceFile="@{messageTxtPath}"
+                        startLine="1"
+                        endLine="-1"
+                        delimiter="\t"
+                        overwrite="true"
+                        targetFileName="@{targetSQLPath}"
+                        entityVersion="@{entityVersion}"
+                    />
+                </else>
+            </if>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="genSystemConfig">
+        <attribute name="messageTxtPath" description="Path of SystemConfig TXT file"/>
+        <attribute name="targetSQLPath" description="Path of the generated SQL"/>
+        <attribute name="domainId" default="/" description="Domain ID, default to be ROOT (/)"/>
+        <attribute name="entityVersion" default="1" description="Entity version of SystemMessage, default to be 1"/>
+        <sequential>
+            <if>
+                <not><available file="@{messageTxtPath}" type="file"/></not>
+                <then>
+                    <echo>Cannot find the message file:</echo>
+                    <echo>@{messageTxtPath}</echo>
+                    <echo>System Message SQL will not be generated.</echo>
+                </then>
+                <else>
+                    <!--<createDBSettingPropertiesFile dbuser="${gen.db.user}" dbpwd="${gen.db.pwd}" dburl="${gen.db.url}"/>-->
+                    <taskdef name="genSystemConfigSqlTask"
+                             classname="com.core.cbx.generator.util.SystemConfigSqlGenerator">
+                        <classpath refid="project.class.path"/>
+                    </taskdef>
+                    <genSystemConfigSqlTask
+                        domainId="@{domainId}"
+                        resourceFile="@{messageTxtPath}"
+                        startLine="1"
+                        endLine="-1"
+                        delimiter="\t"
+                        overwrite="true"
+                        targetFileName="@{targetSQLPath}"
+                        entityVersion="@{entityVersion}"
+                    />
+                </else>
+            </if>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="genLabel">
+        <attribute name="labelFolderPath" description="Path of folder that all the label files stored"/>
+        <attribute name="targetSQLPath" description="Path of the generated SQL"/>
+        <attribute name="domainId" default="/" description="Domain ID, default to be ROOT (/)"/>
+        <attribute name="entityVersion" default="1" description="Entity version of Label, default to be 1"/>
+    	<attribute name="isTemp" default="false" description="If isTemp is true, It will generate CNT_TEMP_LABEL sql"/>
+        <sequential>
+            <if>
+                <not><available file="@{labelFolderPath}" type="dir"/></not>
+                <then>
+                    <echo>Cannot find the label folder:</echo>
+                    <echo>@{labelFolderPath}</echo>
+                    <echo>Label SQL will not be generated.</echo>
+                </then>
+                <else>
+                    <!--<createDBSettingPropertiesFile dbuser="${gen.db.user}" dbpwd="${gen.db.pwd}" dburl="${gen.db.url}"/>-->
+                    <delete file="@{labelFolderPath}/tmpConcatedLabels.tmp"/>
+                    <concat destfile="@{labelFolderPath}/tmpConcatedLabels.tmp"
+                            encoding="UTF8" force="yes" fixlastline="yes">
+                        <fileset dir="@{labelFolderPath}" includes="*.txt"/>
+                    </concat>
+                    <taskdef name="genLabelSqlTask"
+                             classname="com.core.cbx.generator.util.LabelSqlGenerator">
+                        <classpath refid="project.class.path"/>
+                    </taskdef>
+                    <genLabelSqlTask
+                        domainId="@{domainId}"
+                        resourceFile="@{labelFolderPath}/tmpConcatedLabels.tmp"
+                        startLine="1"
+                        endLine="-1"
+                        delimiter="\t"
+                        overwrite="true"
+                        targetFileName="@{targetSQLPath}"
+                        entityVersion="@{entityVersion}"
+                    	isTemp="@{isTemp}"
+                    />
+                </else>
+            </if>
+        </sequential>
+    </macrodef>
+
+</project>

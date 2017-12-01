@@ -1,0 +1,915 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="cbx-full" basedir=".">
+    <property environment="env"/>
+    <!--property name="env.NLS_LANG" value="AMERICAN_AMERICA.UTF8"/-->
+
+    <property name="ant-lib" value="${basedir}/ant-lib/"/>
+
+    <taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${ant-lib}/ant-contrib-1.0b3.jar"/>
+    <taskdef resource="net/sf/incanto/antlib.xml" classpath="${ant-lib}/incanto-0.2.4.jar"/>
+
+    <import file="${ant-lib}/pgsql-macro-db.xml"/>
+
+    <property file="settings/build.properties"/>
+    
+	<property name="dir.build" value="${basedir}/build"/>
+    <property name="dir.cbx-core" value="${dir.build}/cbx-core"/>
+    <property name="dir.cbx-general" value="${dir.build}/cbx-general"/>
+    <property name="dir.cbx-biz" value="${dir.build}/cbx-biz"/>
+    <property name="dir.cbx-doc" value="${dir.build}/cbx-doc"/>
+    <!-- dir.compare: folder to store the file to compare the db -->
+    <property name="dir.compare" value="${dir.build}/compare"/>
+    <property name="dir.temp" value="${dir.build}/temp"/>
+
+	<property name="restoreDB-profile" value="${basedir}/dbprofiles/restoreDB.properties"/>
+
+    <!-- dir.others is not used anymore, all files should come from the cbx-biz (since 5.9 hotfix) -->
+    <!-- <property name="dir.others" value="${basedir}/src/others"/> -->
+    <!-- dir.cbx-biz-sup is not used anymore -->
+    <property name="dir.cbx-biz-sup" value="${basedir}/src/cbx-biz-sup"/>
+    <property name="dir.nightly" value="${basedir}/nightly"/>
+
+    <target name="nightly-release" depends="release" description="Nightly Release">
+        <tstamp>
+            <format property="buildtime" pattern="yyyyMMddHHmm"/>
+        </tstamp>
+        <copy todir="${dir.nightly}" preservelastmodified="true">
+            <fileset dir="${dir.release}">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
+        <move todir="${dir.nightly}" preservelastmodified="true">
+            <fileset dir="${dir.nightly}">
+                <include name="**/*"/>
+            </fileset>
+            <mapper type="regexp" from="(.*)${proj.revision}(.*)" to="\1${proj.revision}.nightly-${buildtime}\2"/>
+        </move>
+        <genChecksumWithPathInfo dir="${dir.nightly}" prefix="${proj.module}-${proj.revision}.nightly-${buildtime}-"/>
+        <echo>Nightly release done.</echo>
+        <echo>Verion: ${proj.revision}</echo>
+    </target>
+
+    <target name="release" depends="test, compareDb">
+        <if>
+            <istrue value="${release.copyToShare}"/>
+            <then>
+                <echo>Copy DB dump to share folder:</echo>
+                <echo>${dir.release.share}/db/${proj.revision}</echo>
+                <copy todir="${dir.release.share}/db/${proj.revision}" preservelastmodified="true">
+                    <fileset dir="${dir.release.dbdump}">
+                        <include name="**/*"/>
+                    </fileset>
+                </copy>
+            </then>
+        </if>
+        <echo>Completed the release</echo>
+    </target>
+
+    <!-- Use for testing the build
+    <include file="build-install.xml"/>
+    <include file="build-update.xml"/>  -->
+
+
+    <target name="test" depends="cleanPack">
+        <if><istrue value="${release.isIgnoreInstallation}"/><then>
+            <echo>Will not test clean script</echo>
+        </then>
+        <else>
+            <antcall target="install.test-script"/>
+        </else></if>
+
+        <antcall target="update.test-script"/>
+    </target>
+
+    <target name="compareDbUsingExistingDb" depends="cleanCache, clean, compareDb">
+        <echo>Finished Compared</echo>
+    </target>
+
+    <target name="testScriptAndCompareDb" depends="cleanCache, copyBuildAndTest">
+        <echo>Use following CBX Full Source Files</echo>
+        <echo>CBX Full: ${dir.release.cbx-full}</echo>
+        <echo>Build released.</echo>
+    </target>
+
+    <target name="cleanPack" depends="cleanCache, pack"
+            description="Pack the full release">
+        <echo>Build released by first cleaning the cache source files in:</echo>
+        <echo>${dir.cbx-core}</echo>
+        <echo>${dir.cbx-general}</echo>
+        <echo>${dir.cbx-biz}</echo>
+        <if><istrue value="${release.copyToShare}"/><then>
+            <echo>Copy the release to share folder:</echo>
+            <echo>${dir.release.share}/cbx-full/${proj.revision}</echo>
+            <copy todir="${dir.release.share}/cbx-full/${proj.revision}" preservelastmodified="true">
+                <fileset dir="${dir.release}">
+                    <include name="**/*"/>
+                </fileset>
+            </copy>
+        </then></if>
+    </target>
+
+    <target name="copyBuildAndTest" depends="clean"
+            description="Pack the full release without cleaning cache folders">
+        <copy todir="${dir.release}" preservelastmodified="true">
+            <fileset dir="${dir.release.cbx-full}">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
+        <if><istrue value="${release.isIgnoreInstallation}"/><then>
+            <echo>Will not test clean script</echo>
+            <echo>Remove clean script in the folder</echo>
+            <delete dir="${dir.release}/db_scripts/oracle/clean" includeemptydirs="true" quiet="true"/>
+        </then>
+        <else>
+            <antcall target="install.test-script"/>
+        </else></if>
+
+        <antcall target="update.test-script"/>
+
+        <if>
+            <istrue value="${release.isNightlyBuild}"/>
+            <then>
+                <if>
+                    <istrue value="${release.isIgnoreInstallation}"/>
+                    <then>
+                        <echo>Copy nightly build full update DB dump to ${dir.nightly.backup.dbdump}</echo>
+                        <copy todir="${dir.nightly.backup.dbdump}" preservelastmodified="true">
+                            <fileset dir="${dir.release.dbdump}">
+                                <include name="CBX_FULL_UPDATE_*.DUMP"/>
+                            </fileset>
+                            <globmapper from="CBX_FULL_UPDATE_*.DUMP" to="${release.nightly.backup.dbdump}"/>
+                        </copy>
+                    </then>
+                    <else>
+                        <echo>Copy nightly build full install DB dump to ${dir.nightly.backup.dbdump}</echo>
+                        <copy todir="${dir.nightly.backup.dbdump}" preservelastmodified="true">
+                            <fileset dir="${dir.release.dbdump}">
+                                <include name="CBX_FULL_INSTALL_*.DUMP"/>
+                            </fileset>
+                            <globmapper from="CBX_FULL_INSTALL_*.DUMP" to="${release.nightly.backup.dbdump}"/>
+                        </copy>
+                    </else>
+                </if>
+            </then>
+        </if>
+    </target>
+
+    <target name="renewCbxDockerDB">
+        <echo>Prepare schema for cbx-docker</echo>
+
+        <copy tofile="${release.db.directory.path}/docker_${release.nightly.backup.dbdump}"
+                file="${dir.nightly.backup.dbdump}/${release.nightly.backup.dbdump}"
+                overwrite="true"
+                preservelastmodified="true"/>
+
+        <dropAndRemapOracleDump
+            dbhost="${release.db.host}" dbport="${release.db.port}" dbsid="${release.db.sid}"
+            dbuser="${docker.dbuser}" dbpwd="${docker.dbpwd}"
+            adminuser="${release.db.admin.user}" adminpwd="${release.db.admin.pwd}"
+            dumpfile="docker_${release.nightly.backup.dbdump}" schema="${release.install.user}"
+            remapSchema="${docker.remapSchema}"
+            directory="${release.db.directory.name}" directoryPath="${release.db.directory.path}"
+        />
+    </target>
+
+    <target name="pack" depends="clean, buildSql, buildOthers, checksum"
+            description="Pack the full release without cleaning cache folders">
+        <echo>Use following CBX Core and CBX Biz Source Files</echo>
+        <echo>CBX Core: ${dir.release.cbx-core}</echo>
+        <echo>CBX General: ${dir.release.cbx-general}</echo>
+        <echo>CBX Biz : ${dir.release.cbx-biz}</echo>
+        <echo>Build released.</echo>
+    </target>
+
+    <target name="cleanCache" description="Clean the cache folders">
+        <echo>Clean the cache source folders.</echo>
+        <echo>Clean: ${dir.build}</echo>
+        <delete dir="${dir.build}" includeEmptyDirs="true" quiet="true"/>
+    </target>
+
+    <target name="clean" description="Clean the release and log folders">
+        <echo>Clean the release folders.</echo>
+        <delete dir="${dir.release}" includeemptydirs="true" quiet="true"/>
+        <delete dir="${dir.release.dbdump}" includeemptydirs="true" quiet="true"/>
+        <delete dir="${dir.nightly}" includeemptydirs="true" quiet="true"/>
+        <delete dir="${dir.nightly.dbdump}" includeemptydirs="true" quiet="true"/>
+        <delete dir="${dir.temp}" includeemptydirs="true" quiet="true"/>
+        <delete dir="${basedir}/logs" includeemptydirs="true" quiet="true"/>
+        <delete dir="${basedir}/temp" includeemptydirs="true" quiet="true"/>
+        <delete dir="${basedir}/report" includeemptydirs="true" quiet="true"/>
+        <delete file="${basedir}/builder.properties" quiet="true"/>
+    </target>
+
+    <target name="compareDb" depends="compareDbSchema, compareDbData"
+            description="Compare the Installation and Update DB (Schema + Data)">
+<echo>
+= **[ DB COMPARING RESULT ]** =================================================
+compareDbSchema.result = ${compareDbSchema.result}
+compareDbData.result = ${compareDbData.result}
+===============================================================================
+</echo>
+    </target>
+
+    <!-- Target: compareDbSchema
+         Description: Compare the Installation and Update DB Schema.
+         Please define the installation and Update DB setting in build.properties
+    -->
+    <target name="compareDbSchema" depends="clean"
+            description="Compare the Installation and Update DB Schema">
+        <if><not><istrue value="${release.isIgnoreInstallation}"/></not><then>
+            <tstamp>
+                <format property="difftime" pattern="yyyyMMddHHmm"/>
+            </tstamp>
+            <var name="diffFile" value="${dir.temp}/compare/db-diff-${difftime}.txt"/>
+            <var name="cbxDiffFileResult" value="${dir.temp}/compare/db-cbx-diff-${difftime}.txt"/>
+
+            <compareDatabaseSchema
+                outputfile="${diffFile}"
+                cbxOutputfile="${cbxDiffFileResult}"
+                dbUrl="${release.db.url}"
+                dbUser="${release.install.user}"
+                dbPassword="${release.install.pwd}"
+                refDbUrl="${release.db.url}"
+                refDbUser="${release.update.user}"
+                refDbPassword="${release.update.pwd}"
+                resultProperty="compareDbSchema.result"
+            />
+            <echo>Copying the diff file:</echo>
+            <echo>${diffFile}</echo>
+            <echo>${cbxDiffFileResult}</echo>
+            <echo>To folder: ${dir.release.dbdump}</echo>
+            <copy todir="${dir.release.dbdump}" file="${diffFile}" preservelastmodified="true"/>
+            <copy todir="${dir.release.dbdump}" file="${cbxDiffFileResult}" preservelastmodified="true"/>
+        </then><else>
+            <echo>Will not compare the install and update DB</echo>
+        </else></if>
+    </target>
+
+    <target name="testV">
+        <!--
+        <verifyLiquibaseDiffFile diffFilePath="${basedir}/release_dbdump/db-diff-201503121626.txt" outputFilePath="${basedir}/release_dbdump/db-diff-201503121626.txt.cbx.txt" resultProperty="TEST"/>
+        -->
+
+            <var name="compareModules" value="accessObject, codelist, commandListener, dataInheritanceProfile, dataListType, dataMappingRule, defaultProfile, formatProfile, domain, group, hcl, hclType, lookup, role, user, validationProfile, view"/>
+            <compareEntityData
+                installFolder="${dir.compare}/install/data"
+                updateFolder="${dir.compare}/update/data"
+                modules="${compareModules}"
+                resultProperty="compareDbData.result"
+                outputFilePath="${dir.compare}/cbx-compare-result.txt"
+            />
+    </target>
+
+    <!-- Target: compareDbData
+         Description: Compare the Installation and Update DB Data.
+         Please define the installation and Update DB setting in build.properties
+    -->
+    <target name="compareDbData" depends="clean"
+            description="Compare the Installation and Update DB Data">
+        <if><not><istrue value="${release.isIgnoreInstallation}"/></not><then>
+            <tstamp>
+                <format property="difftime" pattern="yyyyMMddHHmm"/>
+            </tstamp>
+
+            <delete dir="${dir.temp}" includeemptydirs="true" quiet="true"/>
+
+            <var name="compareModules" value="accessObject, codelist, commandListener, dataInheritanceProfile, dataListType, dataMappingRule, defaultProfile, formatProfile, domain, group, hcl, hclType, lookup, role, user, validationProfile, view, notificationProfile, label, systemMessage"/>
+
+            <var name="entityUniqueFieldMap" value="AccessObject=objectId,objectType;Codelist=code;CodelistBook=name;CommandHandler=commandType;DataInheritanceProfile=profileName;DataListType=name;DataListTypeItem=fieldId;DataMappingRule=dmrName;DefaultProfile=refEntityName;DefaultProfileField=masterSeqNo,seqNo;DefaultProfileTemplate=masterSeqNo,seqNo;Domain=id;DomainAttribute=key;FieldMappingRule=sourceFieldId,destinationFieldId;FormatField=applyEntityName,fieldId;FormatProfile=profileName;Group=name;GroupHc=hclFullLineage;Hcl=name;HclNode=fullLineage;HclType=type;HclTypeLevel=typeLevel;LookupBook=name;Role=name;User=loginId;UserHc=hclFullLineage;ValidationField=lineNo;ValidationFieldParam=paramKey;ValidationProfile=profileName;ValidationRule=lineNo;View=name,moduleId;ViewAction=actionName;ViewColumn=fieldId;ViewOption=optionName;ViewSorting=fieldId;NotificationProfile=profileName;MemberHclNode=hclNodeFullCode;SystemMessage=messageId,locale"/>
+
+            <var name="debugCompareModules" value="DEBUG_MODE, ${compareModules}"/>
+
+            <!-- Note: use the debugCompareModules if need to have the debug information -->
+            <runGenForm module="${compareModules}" target="entityDataExport" entityUniqueField="${entityUniqueFieldMap}"
+                dbuser="${release.install.user}" dbpwd="${release.install.pwd}" dburl="${release.db.url}"
+                targetPath="${dir.compare}/install" outputPath="${dir.compare}/install"
+            />
+
+            <runGenForm module="${compareModules}" target="entityDataExport" entityUniqueField="${entityUniqueFieldMap}"
+                dbuser="${release.update.user}" dbpwd="${release.update.pwd}" dburl="${release.db.url}"
+                targetPath="${dir.compare}/update" outputPath="${dir.compare}/update"
+            />
+
+            <compareEntityData
+                installFolder="${dir.compare}/install/data"
+                updateFolder="${dir.compare}/update/data"
+                modules="${compareModules}"
+                resultProperty="compareDbData.result"
+                outputFilePath="${dir.compare}/cbx-compare-result.txt"
+            />
+
+            <var name="file.db.entity.checksum.zip" value="${dir.temp}/db-entity-diff-${difftime}.zip"/>
+
+            <zip destfile="${file.db.entity.checksum.zip}"
+                 basedir="${dir.compare}"
+            />
+
+            <echo>Copying the entity checksum zip file:</echo>
+            <echo>${file.db.entity.checksum.zip}</echo>
+            <echo>To folder: ${dir.release.dbdump}</echo>
+            <copy todir="${dir.release.dbdump}" file="${file.db.entity.checksum.zip}" preservelastmodified="true"/>
+
+        </then><else>
+            <echo>Will not compare the install and update DB</echo>
+        </else></if>
+    </target>
+
+    <target name="buildSql" description="Copy and re-index the SQL files to the release folder">
+        <if><istrue value="${release.isIgnoreInstallation}"/><then>
+            <echo>Installation Script will not be generated.</echo>
+        </then></if>
+
+        <echo>Copy CBX Core Source Files</echo>
+        <echo>Folder: ${dir.release.cbx-core}</echo>
+        <copy todir="${dir.cbx-core}" preservelastmodified="true">
+            <fileset dir="${dir.release.cbx-core}">
+                <include name="*.sql"/>
+                <include name="*.txt"/>
+                <include name="*.jar"/>
+                <include name="cbx-core-excel-*.zip"/>
+                <include name="cbx-report-sso.zip"/>
+            </fileset>
+        </copy>
+        <if><available file="${dir.release.cbx-general}" type="dir"/><then>
+            <echo>Copy CBX General Source Files</echo>
+            <echo>Folder: ${dir.release.cbx-general}</echo>
+            <copy todir="${dir.cbx-general}" preservelastmodified="true">
+                <fileset dir="${dir.release.cbx-general}">
+                    <include name="*.sql"/>
+                    <include name="*.txt"/>
+                    <include name="*.jar"/>
+                    <include name="cbx-general-excel-*.zip"/>
+                </fileset>
+            </copy>
+        </then></if>
+        <echo>Copy CBX Biz Files</echo>
+        <echo>Folder: ${dir.release.cbx-biz}</echo>
+        <copy todir="${dir.cbx-biz}" includeEmptyDirs="true" preservelastmodified="true">
+            <fileset dir="${dir.release.cbx-biz}">
+                <include name="*.sql"/>
+                <include name="expTemp.zip"/>
+                <include name="cbx-image-plugin.zip"/>
+                <include name="cbx-task-*.zip"/>
+                <include name="cbx-template-*.zip"/>
+                <include name="cbx-template.dump*.zip"/>
+                <include name="cbx-import-template-*.zip"/>
+                <include name="cbx-biz-excel-*.zip"/>
+                <include name="cbx-biz-builder-*.zip"/>
+                <include name="cbx-referenceImpl*.zip"/>
+                <include name="cbx-report-sso*.zip"/>
+                <include name="cbx-ai-plugin.zip"/>
+                <include name="logSettings.zip"/>
+                <include name="MessAdmin*.*"/>
+                <include name="*.war"/>
+                <include name="*.jar"/>
+                <include name="*.txt"/>
+                <include name="*installation-scripts/*.sql"/>
+                <include name="*update-scripts/*.sql"/>
+                <include name="*others/*.sql"/>
+                <include name="*tools-scripts/*.sql"/>
+                <exclude name="**/*NOT-COMMIT.sql" />
+                <exclude name="*releasenotes.txt" />
+            </fileset>
+        </copy>
+
+        <echo>Copy CBX Doc Files</echo>
+        <echo>Folder: ${dir.release.cbx-doc}</echo>
+        <mkdir dir="${dir.cbx-doc}"/>
+        <if><available file="${dir.release.cbx-doc}" type="dir"/><then>
+            <copy todir="${dir.cbx-doc}" preservelastmodified="true">
+                <fileset dir="${dir.release.cbx-doc}">
+                    <include name="*.pdf"/>
+                    <include name="*.sql"/>
+                </fileset>
+            </copy>
+        </then></if>
+
+        <echo>Remove SQL files in the release folder</echo>
+        <if><available file="${dir.release}" type="dir"/>
+            <then>
+                <delete><fileset dir="${dir.release}" includes="*.sql"/></delete>
+            </then>
+        </if>
+
+        <echo>Massage the SQL files.</echo>
+        <var name="dir.temp-cbx-biz" value="${dir.temp}/cbx-biz"/>
+
+        <if><not><istrue value="${release.isIgnoreInstallation}"/></not>
+            <then>
+                <echo>Clean: Copy and re-index the install SQL files.</echo>
+                <var name="dir.db-install" value="${dir.release}/db_scripts/oracle/clean"/>
+                <echo>Target Folder: ${dir.db-install}</echo>
+                <echo>CBX Core Source Folder: ${dir.cbx-core}</echo>
+                <copyAndRenameSql dir="${dir.cbx-core}" subsytemIdx="1" scriptType="install" targetdir="${dir.db-install}"/>
+                <if><available file="${dir.cbx-general}" type="dir"/><then>
+                    <echo>CBX General Source Folder: ${dir.cbx-general}</echo>
+                    <copyAndRenameSql dir="${dir.cbx-general}" subsytemIdx="2" scriptType="install" targetdir="${dir.db-install}"/>
+                </then></if>
+                <echo>CBX Biz Source Folder: ${dir.cbx-biz}</echo>
+                <copyAndRenameSql dir="${dir.cbx-biz}/installation-scripts" subsytemIdx="3" scriptType="install" targetdir="${dir.db-install}"/>
+                <padMinorVersionForSql dir="${dir.db-install}"/>
+                <reIndexAndRenameSql folder="${dir.db-install}" newversion="${proj.revision}"/>
+                <addActionMapAndReleaseLogSql scriptType="install"
+                    targetdir="${dir.release}/db_scripts/oracle/clean"
+                    prefix="${proj.module}-${proj.revision}-"
+                    version="${proj.revision}"/>
+            </then>
+        </if>
+
+        <echo>Update: Copy and re-index the update SQL files.</echo>
+        <var name="dir.db-update" value="${dir.release}/db_scripts/oracle/update"/>
+        <echo>Folder: ${dir.db-update}</echo>
+        <echo>CBX Core Source Folder: ${dir.cbx-core}</echo>
+        <copyAndRenameSql dir="${dir.cbx-core}" subsytemIdx="1" scriptType="update" targetdir="${dir.db-update}"/>
+        <if><available file="${dir.cbx-general}" type="dir"/><then>
+            <echo>CBX General Source Folder: ${dir.cbx-general}</echo>
+            <copyAndRenameSql dir="${dir.cbx-general}" subsytemIdx="2" scriptType="update" targetdir="${dir.db-update}"/>
+        </then></if>
+        <echo>CBX Biz Source Folder: ${dir.cbx-biz}</echo>
+        <copyAndRenameSql dir="${dir.cbx-biz}/update-scripts" subsytemIdx="3" scriptType="update" targetdir="${dir.db-update}"/>
+        <padMinorVersionForSql dir="${dir.db-update}"/>
+        <reIndexAndRenameSql folder="${dir.db-update}" newversion="${proj.revision}"/>
+        <addActionMapAndReleaseLogSql scriptType="update"
+            targetdir="${dir.release}/db_scripts/oracle/update"
+            prefix="${proj.module}-${proj.revision}-"
+            version="${proj.revision}"/>
+    </target>
+
+    <target name="buildOthers" description="Copy others necessary jar/ war files to release folder">
+        <if><available file="${dir.cbx-biz}/others" type="dir"/><then>
+            <echo>Copy cbx-biz-others</echo>
+            <mkdir dir="${dir.release}/others"/>
+            <copy todir="${dir.release}/others" preservelastmodified="true">
+                <fileset dir="${dir.cbx-biz}/others">
+                    <include name="**/*"/>
+                </fileset>
+            </copy>
+        </then></if>
+
+        <if><available file="${dir.cbx-biz}/tools-scripts" type="dir"/><then>
+            <echo>Copy Tools scripts</echo>
+            <mkdir dir="${dir.release}/db_scripts/oracle/tools"/>
+            <copy todir="${dir.release}/db_scripts/oracle/tools" preservelastmodified="true">
+                <fileset dir="${dir.cbx-biz}/tools-scripts">
+                    <include name="**/*"/>
+                </fileset>
+            </copy>
+        </then></if>
+
+        <echo>Copy cbx-biz-builder</echo>
+        <copy todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-biz-builder-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-biz-builder-(.*)\.zip" to="cbx-biz-builder-${proj.revision}.zip"/>
+        </copy>
+
+        <echo>Copy Excel zip</echo>
+        <copy todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.cbx-core}">
+                <include name="cbx-core-excel-*.zip"/>
+            </fileset>
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-biz-excel-*.zip"/>
+            </fileset>
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-referenceImpl*.zip"/>
+            </fileset>
+        </copy>
+        <if><available file="${dir.cbx-general}" type="dir"/><then>
+            <copy todir="${dir.release}/_sit" preservelastmodified="true">
+                <fileset dir="${dir.cbx-general}">
+                    <include name="cbx-general-excel-*.zip"/>
+                </fileset>
+            </copy>
+        </then></if>
+
+        <echo>Rename cbx-core-excel</echo>
+        <move todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.release}/_sit">
+                <include name="cbx-core-excel-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-core-excel-(.*)\.zip" to="cbx-core-excel-${proj.revision}.zip"/>
+        </move>
+
+        <echo>Rename cbx-general-excel</echo>
+        <move todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.release}/_sit">
+                <include name="cbx-general-excel-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-general-excel-(.*)\.zip" to="cbx-general-excel-${proj.revision}.zip"/>
+        </move>
+
+        <echo>Rename cbx-biz-excel</echo>
+        <move todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.release}/_sit">
+                <include name="cbx-biz-excel-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-biz-excel-(.*)\.zip" to="cbx-biz-excel-${proj.revision}.zip"/>
+        </move>
+
+        <echo>Rename cbx-referenceImpl</echo>
+        <move todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.release}/_sit">
+                <include name="cbx-referenceImpl-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-referenceImpl-(.*)\.zip" to="cbx-referenceImpl-${proj.revision}.zip"/>
+        </move>
+
+        <echo>Rename cbx-referenceImpl2</echo>
+        <move todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.release}/_sit">
+                <include name="cbx-referenceImpl2-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-referenceImpl2-(.*)\.zip" to="cbx-referenceImpl2-${proj.revision}.zip"/>
+        </move>
+
+        <echo>Copy cbx-template</echo>
+        <copy todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-template-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-template-(.*)\.zip" to="cbx-template-${proj.revision}.zip"/>
+        </copy>
+
+        <echo>Copy cbx-template.dump</echo>
+        <copy todir="${dir.release}/db_dump" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-template.dump*.zip"/>
+            </fileset>
+        </copy>
+
+        <echo>Copy cbx-import-template</echo>
+        <copy todir="${dir.release}/_sit" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-import-template-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-import-template-(.*)\.zip" to="cbx-import-template-${proj.revision}.zip"/>
+        </copy>
+
+        <echo>Copy cbx-doc</echo>
+        <copy todir="${dir.release}/doc" preservelastmodified="true">
+            <fileset dir="${dir.cbx-doc}">
+                <include name="*.pdf"/>
+                <include name="*.sql"/>
+            </fileset>
+        </copy>
+
+        <if><available file="${dir.release}/doc/CBX OperationGuide.pdf" type="file"/>
+            <then>
+                <echo>Rename the Operation Guide to proper name</echo>
+                <move file="${dir.release}/doc/CBX OperationGuide.pdf"
+                      tofile="${dir.release}/doc/CBX Operation Guide.pdf"
+                      preservelastmodified="true"/>
+            </then>
+        </if>
+
+        <if><available file="${dir.release.cbx-releasenotes}" type="dir"/><then>
+            <echo>Copy cbx-releasenotes</echo>
+            <copy todir="${dir.release}" preservelastmodified="true">
+                <fileset dir="${dir.release.cbx-releasenotes}">
+                    <include name="*.*"/>
+                </fileset>
+            </copy>
+        </then></if>
+
+        <echo>Copy the war file</echo>
+        <copy todir="${dir.release}/bin" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="*.war"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-biz-(.*)\.war" to="cbx-${proj.revision}.war"/>
+        </copy>
+
+        <echo>Copy cbx-task-update</echo>
+        <copy todir="${dir.release}/bin" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-task-update-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-task-update-(.*)\.zip" to="cbx-task-update-${proj.revision}.zip"/>
+        </copy>
+
+        <if><not><istrue value="${release.isIgnoreInstallation}"/></not><then>
+            <echo>Copy cbx-task</echo>
+            <copy todir="${dir.release}/bin" preservelastmodified="true">
+                <fileset dir="${dir.cbx-biz}">
+                    <include name="cbx-task-*.zip"/>
+                    <exclude name="cbx-task-update-*.zip"/>
+                </fileset>
+                <mapper type="regexp" from="cbx-task-(.*)\.zip" to="cbx-task-${proj.revision}.zip"/>
+            </copy>
+            <echo>Copy MessAdmin</echo>
+            <copy todir="${dir.release}/bin" preservelastmodified="true">
+                <fileset dir="${dir.cbx-biz}">
+                    <include name="MessAdmin*.*"/>
+                </fileset>
+            </copy>
+        </then></if>
+
+        <echo>Copy cbx-template</echo>
+        <copy todir="${dir.release}/bin" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-template-*.zip"/>
+            </fileset>
+            <mapper type="regexp" from="cbx-template-(.*)\.zip" to="cbx-template-${proj.revision}.zip"/>
+        </copy>
+
+        <if><or><not><istrue value="${release.isIgnoreInstallation}"/></not>
+            <istrue value="${release.hotfix.include.logSettings}"/>
+            </or><then>
+                <echo>Copy logSettings</echo>
+                <copy todir="${dir.release}/bin" preservelastmodified="true">
+                    <fileset dir="${dir.cbx-biz}">
+                        <include name="logSettings.zip"/>
+                    </fileset>
+                </copy>
+            </then>
+        </if>
+
+        <if><or><not><istrue value="${release.isIgnoreInstallation}"/></not>
+            <istrue value="${release.hotfix.include.cbx-image-plugin}"/>
+            </or><then>
+                <echo>Copy CBX Image Plugin</echo>
+                <copy todir="${dir.release}/bin" preservelastmodified="true">
+                    <fileset dir="${dir.cbx-biz}">
+                        <include name="cbx-image-plugin.zip"/>
+                    </fileset>
+                </copy>
+            </then>
+        </if>
+
+        <if><or><not><istrue value="${release.isIgnoreInstallation}"/></not>
+            <istrue value="${release.hotfix.include.cbx-report-sso}"/>
+            </or><then>
+            <echo>Copy CBX Report SSO</echo>
+                <copy todir="${dir.release}/bin" preservelastmodified="true">
+                    <fileset dir="${dir.cbx-core}">
+                        <include name="cbx-report-sso.zip"/>
+                    </fileset>
+                </copy>
+            </then>
+        </if>
+
+        <echo>Copy AI Plugin</echo>
+        <copy todir="${dir.release}/bin" preservelastmodified="true">
+            <fileset dir="${dir.cbx-biz}">
+                <include name="cbx-ai-plugin.zip"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="checksum"
+        description="Build the checksum file in the folder defined in property: -Dcbx.releasefolder=[folder]">
+        <echo>Build the checksum file.</echo>
+        <if>
+            <not><isset property="cbx.releasefolder"/></not>
+            <then>
+                <echo>Property "cbx.releasefolder" not defined. Default set to 'release'.</echo>
+                <echo>To set, please use command:</echo>
+                <echo/>
+                <echo>       ant [targetName] -Dcbx.releasefolder=[releaseFolder] </echo>
+                <echo/>
+                <echo>For example:</echo>
+                <echo/>
+                <echo>       ant checksum -Dcbx.releasefolder=5.0.039.0 </echo>
+                <echo/>
+                <property name="cbx.releasefolder" value="${dir.release}"/>
+            </then>
+        </if>
+
+        <available file="${cbx.releasefolder}" type="dir" property="cbx.releasefolder.present"/>
+
+        <fail>
+            <condition><not><istrue value="${cbx.releasefolder.present}"/></not></condition>-
+= **[ ERROR ]** ===============================================================
+ Folder not found:
+ ${cbx.releasefolder}
+===============================================================================
+        </fail>
+
+        <genChecksumWithPathInfo dir="${cbx.releasefolder}" prefix="${proj.module}-${proj.revision}-"/>
+    </target>
+
+    <!-- Utility targets -->
+    <target name="runSqlInFolder" depends="-verify-load-dbprofile"
+            description="Run the SQL in specified folder defined in the argument:
+                            -Dcbx.sqlfolder=[folder]
+                         Log will spool to [folder] logs.
+                         To specified the db profile, please use the argument:
+                            -Dcbx.dbprofile=[DB Profile]">
+        <echo>Run the SQL at folder: ${cbx.sqlfolder}</echo>
+        <echo>DB HOST: ${cbx.db.host}</echo>
+        <echo>DB PORT: ${cbx.db.port}</echo>
+        <echo>DB USER : ${cbx.db.user}</echo> 
+        <echo>DB DB_NAME : ${cbx.db.dbname}</echo>
+        <tstamp>
+            <format property="runSqlTime" pattern="yyyyMMddHHmm"/>
+            <format property="runSqlDate" pattern="yyyyMMdd"/>
+        </tstamp>
+        <property name="runSqlInFolder.logdir" value="${cbx.sqlfolder}-${cbx.dbprofile}-${runSqlTime}.logs"/>
+        <delete dir="${runSqlInFolder.logdir}" includeemptydirs="true" />
+        <property name="sqlbakdir" value="${basedir}/bak/sql/${runSqlDate}"/>
+        <mkdir dir="${sqlbakdir}"/>
+        <trycatch property="errMsg">
+            <try>
+            	<!--property name="env.NLS_LANG" value="AMERICAN_AMERICA.AL32UTF8"/-->
+                <execdirsql
+                    dbhost="${cbx.db.host}" dbport="${cbx.db.port}" dbname="${cbx.db.dbname}"
+                    dbuser="${cbx.db.user}" dbpwd="${cbx.db.pwd}"
+                    dir="${cbx.sqlfolder}"/>
+                <echo>Finished running all SQL</echo>
+                <echo>File moved to backup folder:</echo>
+                <echo>${sqlbakdir}</echo>
+                <move file="${runSqlInFolder.logdir}" todir="${sqlbakdir}"/>
+                <move file="${cbx.sqlfolder}" tofile="${sqlbakdir}/${cbx.sqlfolder}-${cbx.dbprofile}-${runSqlTime}"/>
+            </try>
+            <catch>
+                <echo>Error found when running SQL</echo>
+                <echo>${errMsg}</echo>
+                <if><available file="${runSqlInFolder.logdir}" type="dir"/><then>
+                    <move file="${runSqlInFolder.logdir}" todir="${sqlbakdir}/err"/>
+                    <echo>Log file can be found in:</echo>
+                    <echo>${sqlbakdir}/err</echo>
+                </then></if>
+            </catch>
+            <finally>
+            </finally>
+        </trycatch>
+    </target>
+
+    <target name="prepareDumpFile">
+        <mkdir dir="${basedir}/logs"/>
+        <var name="dumpfile" value="update.dump"/>
+        <copy tofile="${release.db.directory.path}/${dumpfile}"
+              file="${release.update.dumpfile.path}"
+              overwrite="true"
+              preservelastmodified="true"/>
+
+        <dropAndRestoreOracleDump
+            dbhost="${release.db.host}" dbport="${release.db.port}" dbsid="${release.db.sid}"
+            dbuser="${release.update.user}" dbpwd="${release.update.pwd}"
+            adminuser="${release.db.admin.user}" adminpwd="${release.db.admin.pwd}"
+            dumpfile="${dumpfile}" schema="${release.update.dumpfile.schema}"
+            directory="${release.db.directory.name}" directoryPath="${release.db.directory.path}"
+        />
+
+    </target>
+
+    <!-- Following section defines the private targets -->
+
+    <!--
+        Target: -verify-load-dbprofile
+        Description: Verify and load property file defined in ${cbx.dbprofile}"
+    -->
+    <target name="-verify-load-dbprofile" >
+        <!-- Default set the cbx.dbprofile to "dev" -->
+        <if>
+            <not><isset property="cbx.dbprofile"/></not>
+            <then>
+                <echo>Property "cbx.dbprofile" not defined. Default set to 'dev'.</echo>
+                <echo>To set, please use command:</echo>
+                <echo/>
+                <echo>       ant [targetName] -Dcbx.dbprofile=[DB Profile] </echo>
+                <echo/>
+                <echo>For example:</echo>
+                <echo/>
+                <echo>       ant runReleaseSql -Dcbx.dbprofile=myDbProfile </echo>
+                <echo/>
+                <property name="cbx.dbprofile" value="dev"/>
+            </then>
+        </if>
+
+        <available file="${dir.dbProfiles}/${cbx.dbprofile}.properties" type="file" property="cbx.dbprofile.present"/>
+
+        <fail>
+            <condition><not><istrue value="${cbx.dbprofile.present}"/></not></condition>-
+= **[ ERROR ]** ===============================================================
+ File not found:
+ ${dir.dbProfiles}/${cbx.dbprofile}.properties
+===============================================================================
+        </fail>
+
+        <echo>Read the DB Profile ${cbx.dbprofile} in dbProfiles folder</echo>
+        <property file="${dir.dbProfiles}/${cbx.dbprofile}.properties"/>
+
+    </target>
+	
+	
+	<!-- Utility targets -->
+    <target name="restoreDB">
+	
+		<property file="${restoreDB-profile}"/>
+        <echo>restore the db dump at folder: ${cbx.dump-folder} : ${restoreDB-profile}</echo>
+        <echo>DB HOST: ${cbx.db.host}</echo>
+        <echo>DB PORT: ${cbx.db.port}</echo>
+        <echo>DB USER : ${cbx.db.user}</echo>
+        <echo>DB DB_NAME : ${cbx.db.dbname}</echo>
+		<echo>DB HOST: ${cbx.db.adminuser}</echo>
+        <echo>DB PORT: ${cbx.db.dumpfile}</echo>
+        <tstamp>
+            <format property="runSqlTime" pattern="yyyyMMddHHmm"/>
+            <format property="runSqlDate" pattern="yyyyMMdd"/>
+        </tstamp>
+        <trycatch property="errMsg">
+            <try>
+            	<!--property name="env.NLS_LANG" value="AMERICAN_AMERICA.AL32UTF8"/-->
+                <dropAndRestorePgsqlDump
+                    dbhost="${cbx.db.host}" dbport="${cbx.db.port}" dbname="${cbx.db.dbname}"
+                    dbuser="${cbx.db.user}" dbpwd="${cbx.db.pwd}" adminuser="${cbx.db.adminuser}"
+					adminpwd="${cbx.db.adminpwd}"
+                    dumpfile="${basedir}/${cbx.db.dumpfile}"/>
+                <echo>Finished restore db dump: ${cbx.db.dumpfile}</echo>
+            </try>
+            <catch>
+                <echo>Error found when running SQL</echo>
+                <echo>${errMsg}</echo>
+            </catch>
+            <finally>
+            </finally>
+        </trycatch>
+    </target>
+	
+	
+	<target name="dropDB">
+	
+		<property file="${restoreDB-profile}"/>
+		<echo>Drop and create DB</echo>
+        <echo>HOST: ${cbx.db.host}, USER: ${cbx.db.adminuser}, DBS : ${cbx.drop.dbnames}</echo>
+        <tstamp>
+            <format property="runSqlTime" pattern="yyyyMMddHHmm"/>
+            <format property="runSqlDate" pattern="yyyyMMdd"/>
+        </tstamp>
+        <trycatch property="errMsg">
+            <try>
+            	<!--property name="env.NLS_LANG" value="AMERICAN_AMERICA.AL32UTF8"/-->
+				<for list="${cbx.drop.dbnames}" param="dbname">  
+				 <sequential>
+				 <echo>start drop db : @{dbname}</echo>
+				<dropPgsqlDB
+                dbhost="${cbx.db.host}" dbport="${cbx.db.port}" dbname="@{dbname}"
+                adminuser="${cbx.db.adminuser}" adminpwd="${cbx.db.adminpwd}"
+                dbuser="${cbx.db.adminuser}"/>
+				
+                <echo>Finished drop db : @{dbname}</echo>
+				</sequential>
+				</for> 
+               
+            </try>
+            <catch>
+                <echo>Error found when running SQL</echo>
+                <echo>${errMsg}</echo>
+            </catch>
+            <finally>
+            </finally>
+        </trycatch>
+    </target>
+
+    <!-- Following section defines the marcos -->
+
+
+    <!-- Auto test -->
+    <!-- compatibility test 
+    <include file="build-autotest-compatibility.xml"/> -->
+
+    <target name="check-initialization" description="Initialize compatibility check">
+        <echo>Initialize compatibility check</echo>
+        <antcall target="autotest-compatibility.prepare-current-and-previous-db"/>
+    </target>
+
+    <target name="check-validator"  description="Check if this version has introduced any new mandatory/unique validator">
+        <echo>Find new mandatory and unique validator</echo>
+        <antcall target="autotest-compatibility.find-new-mandatory-or-unique-validator"/>
+    </target>
+
+    <target name="check-reportdb"  description="Check if this version has altered report DB schema">
+        <echo>Find report DB schema change</echo>
+        <antcall target="autotest-compatibility.find-reportdb-schema-change"/>
+    </target>
+
+    <target name="check-cbxdb" description="Check if this version has altered CBX DB schema">
+        <echo>Find CBX DB schema change</echo>
+        <antcall target="autotest-compatibility.find-cbx-schema-change"/>
+    </target>
+
+    <!-- functional test 
+    <include file="build-autotest-functional.xml"/> -->
+
+    <target name="functional-test" description="Run JMeter Function Test">
+        <echo>Run JMeter Functional Test</echo>
+        <antcall target="autotest-functional.run-jmeter"/>
+    </target>
+
+    <!-- Generate Diagram
+    <include file="generate-diagram.xml"/>  -->
+
+    <target name="generate-cbx-erdiagram" description="Generate CBX ER Diagrams">
+        <echo>Generate CBX ER Diagrams</echo>
+        <antcall target="generate-diagram.cbx-erdiagram"/>
+    </target>
+    <target name="gernate-diagram-initialization" description="Initialize required data for diagram generation">
+        <echo>import-cbx-db-dump</echo>
+        <antcall target="generate-diagram.import-cbx-db-dump"/>
+    </target>
+
+
+</project>

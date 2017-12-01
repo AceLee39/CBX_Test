@@ -1,0 +1,528 @@
+<project>
+
+        <macrodef name="execdirsql"
+              description="Rull all SQL in the dir (Depends on marcodef: execsql)
+                           Note: Need to load the dbProfile properties file (Run the task: -verify-load-dbprofile)">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbname" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dir" description="Folder that store the SQL to be executed"/>
+        <attribute name="logdir" default="" description="Folder that store the log files"/>
+        <sequential>
+            <echo>[execdirsql] SQL Folder: @{dir}</echo>
+            <fail>
+                <condition><not><available file="@{dir}" type="dir" /></not></condition>-
+= **[ ERROR ]** ===============================================================
+ Folder not found:
+ @{dir}
+===============================================================================
+            </fail>
+            <if><equals arg1="@{logdir}" arg2=""/><then>
+                <tstamp><format property="cbx-runSqlTime" pattern="yyyyMMddHHmmssSSS"/></tstamp>
+                <var name="actualLogDir" value="@{dir}.${cbx-runSqlTime}.logs"/>
+            </then><else>
+                <var name="actualLogDir" value="@{logdir}"/>
+            </else></if>
+
+            <mkdir dir="${actualLogDir}"/>
+            <for param="file">
+                <path>
+                    <sort xmlns:rcmp="antlib:org.apache.tools.ant.types.resources.comparators">
+                        <fileset dir="@{dir}" includes="*.sql" casesensitive="false"/>
+                    </sort>
+                </path>
+                <sequential>
+                    <propertyregex override="yes" property="sqlFileName" input="@{file}"
+                                   regexp=".*[\\/](.*)\.sql"
+                                   replace="\1.sql" casesensitive="false"/>
+                    <path id="project.class.path">
+                    <fileset dir="${basedir}/lib" includes="**/*.jar"/>
+                    </path>
+                    
+                    <taskdef name="calculator" classname="com.core.cbx.tool.TimeCalculator" classpathref="project.class.path"/>
+                    <calculator subject="${sqlFileName}" outputFile="${basedir}/temp/sql.execution.time_${cbx-runSqlTime}.txt">
+                    <echo>SQL: ${sqlFileName}</echo>
+                    <execsql
+                        dbhost="@{dbhost}"
+                        dbport="@{dbport}"
+                        dbname="@{dbname}"
+                        dbuser="@{dbuser}"
+                        dbpwd="@{dbpwd}"
+                        sqlfile="@{file}"
+                        logfile="${actualLogDir}/${sqlFileName}.log"/>
+                   </calculator>
+                </sequential>
+            </for>
+            <echo>Log files stored in ${actualLogDir}</echo>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="execsql" description="Run single SQL file.">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbdriver" description="DB Port" default="org.postgresql.Driver"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbname" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dbautocommit" description="DB Password" default="true"/>
+        <attribute name="sqlfile" description="SQL file to be run"/>
+        <attribute name="logfile" default="sql.log" description="Log file"/>
+        <sequential>
+
+            <trycatch>
+                <try>
+                <echo>message: -u :@{dbuser} -h @{dbhost} -f @{sqlfile} -d @{dbname} -p @{dbport}</echo>
+                    <exec executable="psql" output="@{logfile}" failonerror="true">
+                        <env key="PGPASSWORD" value="@{dbpwd}"/>
+                        <env key="PGCLIENTENCODING" value="UTF8"/>
+                        <arg line="-v ON_ERROR_STOP=1"/>
+                        <arg line="-U @{dbuser}"/>
+                        <arg line="-h @{dbhost}"/>
+                        <arg line="-p @{dbport}"/>
+                        <arg line="-d @{dbname}"/>
+                        <arg line="-f @{sqlfile}"/>
+                        <!-- <arg line="-L @{logfile}"/> -->
+                    </exec>
+                </try>
+                <catch>
+                    <echo>Last 50 lines of log file: @{logfile}</echo>
+                    <echo>-------------------------------------</echo>
+                    <echo>....</echo>
+                    <var name="cbx.execsql.error" unset="true"/>
+                    <loadfile srcfile="@{logfile}" property="cbx.execsql.error">
+                        <filterchain>
+                            <filterreader classname="org.apache.tools.ant.filters.TailFilter">
+                                <param name="lines" value="50"/>
+                            </filterreader>
+                        </filterchain>
+                    </loadfile>
+                    <echo>${cbx.execsql.error}</echo>
+                    <echo>-------------------------------------</echo>
+                    <fail>Error when running: @{sqlfile}</fail>
+                </catch>
+            </trycatch>
+
+        </sequential>
+    </macrodef>
+    <macrodef name="cleanAndImportPgsqlDumpSchema">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB User name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dbschema" description="DB schema"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <cleanPgsqlSchema
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                dbschema="@{dbschema}"
+            />
+            <importPgsqlDumpSchema
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                dbschema="@{dbschema}"
+                dumpfile="@{dumpfile}"
+            />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="cleanPgsqlSchema">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB User name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dbschema" description="DB schema"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Clean the Schema in DB</echo>
+            <echo>HOST: @{dbhost}, USER: @{dbuser}, DB: @{dbname}, SCHEMA: @{dbschema}</echo>
+            <concat destfile="${macro.db.tmpdir}/cbx-${runSqlTime}-cleanPgsqlSchema-1.sql">
+DROP SCHEMA IF EXISTS PUBLIC CASCADE;
+CREATE SCHEMA PUBLIC;
+CREATE OR REPLACE FUNCTION uuid_generate_v4()
+RETURNS uuid AS
+    '$libdir/uuid-ossp', 'uuid_generate_v4'
+    LANGUAGE c VOLATILE STRICT
+    COST 1;
+            </concat>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{dbUser}" dbpwd="@{dbpwd}"
+                sqlfile="${macro.db.tmpdir}/cbx-${runSqlTime}-cleanPgsqlSchema-1.sql"
+                logfile="${macro.db.tmpdir}/cbx-${runSqlTime}-cleanPgsqlSchema-1.sql.log"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="importPgsqlDumpSchema">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB Name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dbschema" description="DB Schema"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Going to import PostgreSQL DB Dump</echo>
+            <echo>DB: @{dbname}, Schema: @{dbschema}</echo>
+            <echo>Dump File: @{dumpfile}</echo>
+
+            <exec executable="pg_restore">
+                <env key="PGPASSWORD" value="@{dbpwd}"/>
+                <arg line="-h @{dbhost}"/>
+                <arg line="-p @{dbport}"/>
+                <arg line="-U @{dbuser}"/>
+                <arg line="-d @{dbname}"/>
+                <arg line="-O"/>
+                <arg line="--schema=@{dbschema}"/>
+                <arg line="@{dumpfile}"/>
+            </exec>
+
+        </sequential>
+    </macrodef>
+
+    <macrodef name="exportPgsqlDumpWithTableName">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbname" description="DB Name"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="table" description="DB Dumpfile with table"/>
+        <attribute name="dbuser" description="User name"/>
+        <attribute name="dbpwd" description="User Password"/>
+        <sequential>
+            <echo>Going to export PostgreSQL DB Dump</echo>
+            <echo>DB: @{dbname}</echo>
+            <echo>Dump File:pg_dump -h @{dbhost} -U @{dbuser} -t @{table} -w -Fc -O -f @{dumpfile} @{dbname}</echo>
+            <exec executable="pg_dump">
+                <env key="PGPASSWORD" value="@{dbpwd}"/>
+                <arg line="-h @{dbhost}"/>
+                <arg line="-U @{dbuser}"/>
+                <arg line="-t &quot;@{table}&quot;"/>
+                <arg line="-w"/>
+                <arg line="-Fc"/>
+                <arg line="-O"/>
+                <arg line="-f @{dumpfile}"/>
+                <arg line="@{dbname}"/>
+            </exec>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="dropAndRestorePgsqlDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB Name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="adminuser" description="Admin user"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <dropAndRecreatePgsqlDB
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+            />
+            <importPgsqlDump
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+                dumpfile="@{dumpfile}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"/>
+
+        </sequential>
+    </macrodef>
+
+    <macrodef name="dropAndRecreatePgsqlDB">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Drop and create DB</echo>
+            <echo>HOST: @{dbhost}, USER: @{dbuser}</echo>
+            <dropPgsqlDB
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                dbuser="@{dbuser}"
+            />
+            <createPgsqlDB
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                adminuser="@{adminuser}" adminpwd="@{adminpwd}"
+                dbuser="@{dbuser}" dbpwd="@{dbpwd}"
+            />
+        </sequential>
+    </macrodef>
+
+    <macrodef name="dropPgsqlDB">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+
+            <echo>Drop DB</echo>
+            <echo>HOST: @{dbhost}, USER: @{dbuser}</echo>
+            <var name="macro.db.tmpdir" value="build/tmp"/>
+            <mkdir dir="${macro.db.tmpdir}"/>
+
+            <!-- Drop the Connection -->
+            <concat destfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-dropPgsqlDB.sql">
+DO $BODY$
+BEGIN
+    EXECUTE 'REVOKE CONNECT ON DATABASE @{dbname} FROM PUBLIC, @{dbuser}';
+EXCEPTION
+WHEN OTHERS THEN
+    RAISE NOTICE 'Fail to REVOKE connection for: @{dbuser}';
+END $BODY$ LANGUAGE PLPGSQL;
+
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='@{dbname}';
+
+            </concat>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="postgres"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-dropPgsqlDB.sql"
+                logfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-dropPgsqlDB.sql.log"/>
+
+            <!-- Drop the DB -->
+            <exec executable="dropdb">
+                <env key="PGPASSWORD" value="@{adminpwd}"/>
+                <arg line="-h @{dbhost}"/>
+                <arg line="-p @{dbport}"/>
+                <arg line="-U @{adminuser}"/>
+                <arg line="-w"/>
+                <arg line="@{dbname}"/>
+            </exec>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="createPgsqlDB">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Create DB</echo>
+            <echo>HOST: @{dbhost}, USER: @{dbuser}</echo>
+            <!-- Create DB and User -->
+            <concat destfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-createPgsqlDB.sql">
+DO $BODY$
+BEGIN
+    EXECUTE 'DROP USER @{dbuser}';
+EXCEPTION
+WHEN OTHERS THEN
+    RAISE NOTICE 'Fail to drop user @{dbuser}';
+END $BODY$ LANGUAGE PLPGSQL;
+
+CREATE USER @{dbuser} WITH PASSWORD '@{dbpwd}';
+CREATE DATABASE @{dbname} WITH OWNER @{dbuser} ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0;
+GRANT ALL PRIVILEGES ON DATABASE @{dbname} to @{dbuser};
+
+            </concat>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="postgres"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-createPgsqlDB.sql"
+                logfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-createPgsqlDB.sql.log"/>
+
+            <!-- grant access right -->
+            <concat destfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-uuid_generate_v4.sql">
+/*
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO @{dbuser};
+GRANT ALL ON ALL TABLES IN SCHEMA public TO @{dbuser};
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO @{dbuser};
+*/
+CREATE OR REPLACE FUNCTION uuid_generate_v4()
+RETURNS uuid AS
+    '$libdir/uuid-ossp', 'uuid_generate_v4'
+    LANGUAGE c VOLATILE STRICT
+    COST 1;
+
+--GRANT EXECUTE ON FUNCTION uuid_generate_v4() to PUBLIC;
+
+            </concat>
+            <execsql
+                dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
+                dbuser="@{adminuser}" dbpwd="@{adminpwd}"
+                sqlfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-uuid_generate_v4.sql"
+                logfile="${macro.db.tmpdir}/cbx-${runSqlTime}-dropAndRecreateDB-uuid_generate_v4.sql.log"/>
+
+        </sequential>
+    </macrodef>
+
+    <macrodef name="importPgsqlDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="5432"/>
+        <attribute name="dbname" description="DB Name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <attribute name="adminuser" description="Admin user name"/>
+        <attribute name="adminpwd" description="Admin Password"/>
+        <sequential>
+            <tstamp>
+                <format property="runSqlTime" pattern="yyyyMMddHHmmssSSS"/>
+            </tstamp>
+            <echo>Going to import PostgreSQL DB Dump</echo>
+            <echo>DB: @{dbname}</echo>
+            <echo>Dump File: @{dumpfile}</echo>
+
+            <exec executable="pg_restore">
+                <env key="PGPASSWORD" value="@{dbpwd}"/>
+                <arg line="-h @{dbhost}"/>
+                <arg line="-p @{dbport}"/>
+                <arg line="-U @{dbuser}"/>
+                <arg line="-O"/>
+                <arg line="-d @{dbname}"/>
+                <arg line="@{dumpfile}"/>
+            </exec>
+
+        </sequential>
+    </macrodef>
+
+    <macrodef name="exportPgsqlDump">
+        <attribute name="dbhost" description="Host Name/ IP of the DB"/>
+        <attribute name="dbport" description="DB Port" default="1521"/>
+        <attribute name="dbname" description="DB Name"/>
+        <attribute name="dbuser" description="DB User name"/>
+        <attribute name="dbpwd" description="DB Password"/>
+        <attribute name="dumpfile" description="DB Dumpfile to be restored"/>
+        <sequential>
+            <echo>Going to export PostgreSQL DB Dump</echo>
+            <echo>DB: @{dbname}</echo>
+            <echo>Dump File: @{dumpfile}</echo>
+            <exec executable="pg_dump">
+                <env key="PGPASSWORD" value="@{dbpwd}"/>
+                <arg line="-h @{dbhost}"/>
+                <arg line="-p @{dbport}"/>
+                <arg line="-U @{dbuser}"/>
+                <arg line="-w"/>
+                <arg line="-Fc"/>
+                <arg line="-f @{dumpfile}"/>
+                <arg line="@{dbname}"/>
+            </exec>
+        </sequential>
+    </macrodef>
+
+    <!-- Check SQL&LOG file last modified date -->
+    <scriptdef language="javascript" name="checkSqlFile">
+        <attribute name="sqlfile"/>
+        <attribute name="logfile"/>
+        var javaVersion = java.lang.System.getProperty("java.version");
+        self.log(javaVersion);
+        if (!javaVersion.startsWith("1.7")) {
+            load("nashorn:mozilla_compat.js");
+        }
+        importClass(java.io.File);
+        var logfile = new File(attributes.get("logfile"));
+        var sqlfile = new File(attributes.get("sqlfile"));
+        if(!logfile.exists()){
+            self.log("Cannot skip run sql file , File Not Found :" + attributes.get("logfile"));
+            project.setProperty("skipSqlFile","false");
+        } else {
+            var logModifiedDate=logfile.lastModified();
+            var sqlModifiedDate=sqlfile.lastModified();
+            self.log("log file modified date:"+logModifiedDate);
+            self.log("sql file modified date:"+sqlModifiedDate);
+           if(logModifiedDate>=sqlModifiedDate){
+                self.log("Skip run sql file , SQL file doesn't updated:" + attributes.get("sqlfile"));
+                project.setProperty("skipSqlFile","true");
+           } else {
+                self.log("Cannot skip run sql file , SQL file have updated :" + attributes.get("sqlfile"));
+                project.setProperty("skipSqlFile","false");
+           }
+        }
+    </scriptdef>
+
+    <!-- To upper case -->
+    <scriptdef language="javascript" name="upper">
+        <attribute name="string" />
+        <attribute name="to" />
+        project.setProperty(attributes.get("to"),attributes.get("string").toUpperCase());
+    </scriptdef>
+
+    <!-- To upper case -->
+    <scriptdef language="javascript" name="findImportSetting">
+        <attribute name="settings"/>
+        <attribute name="found"/>
+        var javaVersion = java.lang.System.getProperty("java.version");
+        self.log(javaVersion);
+        if (!javaVersion.startsWith("1.7")) {
+            load("nashorn:mozilla_compat.js");
+        }
+
+        importClass(java.util.TimeZone);
+        importClass(java.util.Calendar);
+        var tz = TimeZone.getTimeZone("Hongkong");
+        var calendar = Calendar.getInstance(tz);
+        var day = calendar.get(Calendar.DAY_OF_WEEK) - 1;
+        if (day == 0) {
+            // Sunday - set to 7
+            day = 7;
+        }
+        var settingArray = attributes.get("settings").split(",");
+        var arraySize = settingArray.length;
+        var idx = (day - 1) % arraySize;
+        if (idx &lt; 0) {
+            idx = (7 + idx) % arraySize;
+        }
+        self.log('idx=' + idx + ', arraySize=' + arraySize + ', day=' + day);
+        project.setProperty(attributes.get("found"), settingArray[idx].trim());
+    </scriptdef>
+
+    <scriptdef language="javascript" name="calculateNeedDropDays">
+        <attribute name="today"/>
+        <attribute name="maxnum"/>
+        <attribute name="droplist"/>
+        var javaVersion = java.lang.System.getProperty("java.version");
+        self.log(javaVersion);
+        if (!javaVersion.startsWith("1.7")) {
+            load("nashorn:mozilla_compat.js");
+        }
+
+        var today = new Number(attributes.get("today"));
+        var maxnum = new Number(attributes.get("maxnum"));
+        var needDropList = new Array();
+        if (maxnum != 0) {
+                for (var i = 7 - maxnum; i > 0; i--) {
+                var result = (today + i) % 7;
+                if (result == 0) {
+                    needDropList.push(7);
+                } else {
+                    needDropList.push(result);
+                }
+            }
+        }
+        self.log('Max usable DB number=' + maxnum + ', Need drop DB days =' + needDropList);
+        project.setProperty(attributes.get("droplist"), needDropList);
+    </scriptdef>
+</project>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zk>
+    <richlet>
+        <richlet-name>entry</richlet-name>
+        <richlet-class>com.core.cbx.ui.zk.MainRichlet</richlet-class>
+    </richlet>
+
+    <richlet-mapping>
+        <richlet-name>entry</richlet-name>
+        <url-pattern>/*</url-pattern>
+    </richlet-mapping>
+
+    <richlet>
+        <richlet-name>plugin</richlet-name>
+        <richlet-class>com.core.cbx.ui.zk.PluginRichlet</richlet-class>
+    </richlet>
+     <richlet-mapping>
+        <richlet-name>plugin</richlet-name>
+        <url-pattern>/ai</url-pattern>
+    </richlet-mapping>
+
+    <richlet>
+        <richlet-name>exceptionHandler</richlet-name>
+        <richlet-class>com.core.cbx.ui.zk.ExceptionHandlerRichlet</richlet-class>
+    </richlet>
+
+    <richlet-mapping>
+        <richlet-name>exceptionHandler</richlet-name>
+        <url-pattern>/exception</url-pattern>
+    </richlet-mapping>
+
+    <richlet>
+        <richlet-name>password</richlet-name>
+        <richlet-class>com.core.cbx.ui.zk.PasswordHandlerRichlet</richlet-class>
+    </richlet>
+
+    <richlet-mapping>
+        <richlet-name>password</richlet-name>
+        <url-pattern>/password/*</url-pattern>
+    </richlet-mapping>
+
+    <richlet>
+        <richlet-name>registration</richlet-name>
+        <richlet-class>com.core.cbx.ui.zk.VendorRegistrationHandlerRichlet</richlet-class>
+    </richlet>
+
+    <richlet-mapping>
+        <richlet-name>registration</richlet-name>
+        <url-pattern>/registration/*</url-pattern>
+    </richlet-mapping>
+
+    <desktop-config>
+        <theme-uri>/css/rhpstyles.css</theme-uri>
+        <theme-uri>/css/rhpexternalstyles.css</theme-uri>
+        <theme-uri>/css/styles.css</theme-uri>
+        <theme-uri>/css/forumenhancestyles.css</theme-uri>
+        <theme-uri>/css/forumexternalstyles.css</theme-uri>
+    </desktop-config>
+
+    <error-page>
+        <exception-type>java.lang.Throwable</exception-type>
+        <location>/exception</location>
+    </error-page>
+
+    <!-- Uncomment if you turn off the caching of resources loaded from
+        the class path (aka., class Web resources).
+        By default, class Web resources are cached by the browser until
+        you upgraded ZK to a newer version.
+        However, it is better to turn the cache off when you are developing
+        a theme or a component.
+
+    <library-property>
+        <name>org.zkoss.web.classWebResource.cache</name>
+        <value>false</value>
+    </library-property>
+
+    <library-property>
+        <name>org.zkoss.zk.WPD.cache</name>
+        <value>false</value>
+    </library-property>
+
+    <library-property>
+        <name>org.zkoss.web.util.resource.dir</name>
+        <value>/WEB-INF/cwr</value>
+    </library-property>
+
+    <language-config>
+        <addon-uri>/WEB-INF/lang-addon.xml</addon-uri>
+    </language-config>-->
+
+     <!-- Uncomment to turn on debug js which will load .src.js first-->
+    <client-config>
+        <!-- <debug-js>true</debug-js> -->
+        <processing-prompt-delay>200</processing-prompt-delay>
+    </client-config>
+
+     <!--As we have used domain attribute "ui.attach.file.size" or "ui.attach.file.%1s.size" to validate the file size,
+     so raise max upload size to '102410' to ensure not effect the validation-->
+    <system-config>
+        <max-upload-size>102410</max-upload-size>
+    </system-config>
+
+    <!-- <listener>
+          <description>UI Performance Monitor</description>
+          <listener-class>com.core.cbx.ui.zk.pm.CbxPerformanceMeter</listener-class>
+    </listener>-->
+    <session-config>
+        <device-type>ajax</device-type>
+        <timeout-message>script:cul.timeout()</timeout-message>
+    </session-config>
+    <system-config>
+    <id-generator-class>SimpleIdGenerator</id-generator-class>
+</system-config>
+</zk>
