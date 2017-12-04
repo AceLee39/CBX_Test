@@ -8,9 +8,11 @@
 
 package com.cbx.test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -83,5 +85,38 @@ public class BaseTest {
 
     protected static void tempLogin(final String domainId, final String hubDomainId, final ProcessWithException process) throws Exception {
         AuthenticationUtil.runInSystemTempContext(domainId, hubDomainId, process);
+    }
+
+    protected static File readFileFromFolder(final String folderStr) {
+        return readFileFromFolder(folderStr, null);
+    }
+
+    protected static File readFileFromFolder(final String folderStr, final String fileName) {
+        final File folder = new File(getValueFromConfig(folderStr));
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+        File file = null;
+        final File[] files = folder.listFiles();
+        if (StringUtils.isBlank(fileName) && files.length != 0) {
+            file = files[0];
+        } else {
+            for (final File file1 : files) {
+                if (file1.isFile() && StringUtils.equals(file1.getName(), fileName)) {
+                    file = file1;
+                }
+            }
+        }
+        return file;
+    }
+
+
+    protected static boolean removeFileInFolder(final String fileName, final String folderStr) {
+        final File file = new File(getValueFromConfig(folderStr) + "/" + fileName);
+        log.info("remove fileName ===== " + file.getAbsolutePath());
+        if (file.exists()) {
+            return FileUtils.deleteQuietly(file);
+        }
+        return false;
     }
 }

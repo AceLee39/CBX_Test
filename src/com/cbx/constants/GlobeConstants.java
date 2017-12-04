@@ -33,6 +33,7 @@ public interface GlobeConstants {
 
     //UploadXmlWithoutBNTest, RebuildUploadXmlCheckSumUtils
     String UPLOAD_XML_PATH = "uploadXmlPath";
+    String UPLOAD_XML_FOLDER = "uploadXmlFolder";
 
     //RebuildUploadXmlCheckSumUtils
     String CHECKSUM_OUTPUT = "checksumOutput";

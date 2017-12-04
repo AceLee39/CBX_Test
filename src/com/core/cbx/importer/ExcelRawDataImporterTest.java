@@ -10,7 +10,6 @@ package com.core.cbx.importer;
 
 import java.io.File;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -63,7 +62,7 @@ public class ExcelRawDataImporterTest extends BaseTest {
         boolean isDeleted = Boolean.TRUE;
         while(true) {
             Thread.sleep(10000);
-            final File importFile1 = readImportFile();
+            final File importFile1 = readFileFromFolder(GlobeConstants.IMPORT_READ_FOLDER);
             if (importFile1 == null) {
                 log.info("sleep ========================= ");
                 continue;
@@ -83,7 +82,7 @@ public class ExcelRawDataImporterTest extends BaseTest {
                 log.error("error : ", e);
             } finally {
                 Thread.sleep(10000);
-                isDeleted = removeFile(fileName);
+                isDeleted = removeFileInFolder(fileName, GlobeConstants.IMPORT_READ_FOLDER);
                 if (!isDeleted) {
                     Thread.sleep(10000);
                     log.info("Fail to remove fileName ===== " + fileName);
@@ -91,36 +90,5 @@ public class ExcelRawDataImporterTest extends BaseTest {
                 }
             }
         }
-    }
-
-
-    /**
-     * @param fileName
-     * @throws InterruptedException
-     */
-    private static boolean removeFile(final String fileName) {
-        final File file = new File(getValueFromConfig(GlobeConstants.IMPORT_READ_FOLDER) + "/" + fileName);
-        log.info("remove fileName ===== " + file.getAbsolutePath());
-        if (file.exists()) {
-            return FileUtils.deleteQuietly(file);
-        }
-        return false;
-    }
-
-
-    /**
-     * @return
-     */
-    private static File readImportFile() {
-        final File folder = new File(getValueFromConfig(GlobeConstants.IMPORT_READ_FOLDER));
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-        final File[] files = folder.listFiles();
-        if (files.length == 0) {
-            return null;
-        }
-        final File file = files[0];
-        return file;
     }
 }
