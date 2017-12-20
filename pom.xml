@@ -9,7 +9,7 @@
 
     <properties>
         <!-- Sub-system versions to be used -->
-        <cbx.version>6.11.0</cbx.version>
+        <cbx.version>6.12.0</cbx.version>
 
         <!-- other properties -->
         <pack-type>jar</pack-type>

@@ -8,6 +8,7 @@
 
 package com.cbx.test.date;
 
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,6 +22,7 @@ import org.zkoss.util.Locales;
 import com.cbx.ws.rest.util.CpmDateUtil;
 import com.core.cbx.common.logging.LogFactory;
 import com.core.cbx.common.type.DateTime;
+import com.core.cbx.common.type.DateTime.Unit;
 import com.core.cbx.common.util.NumberUtil;
 import com.core.cbx.data.entity.EntityConstants;
 
@@ -47,13 +49,22 @@ public class TestDateTime {
         final String date = "11/03/2017 16:49:17";
         final String defFormat = "MM/dd/yyyy HH:mm:ss";
         final DateTime defDateTime = DateTime.parseToDateTime(date, defFormat);
+        final Timestamp valueOf = Timestamp.valueOf(defDateTime.toString());
+        System.out.println(valueOf);
 
         final DateTime dateTime = domainTimeConverter(defDateTime, "UTC+8");
         final String defFormatss = "MM/DD/YYYY hh:mm:ss";
         final String text = dateTime.format(defFormatss);
         System.out.println(defDateTime);
-        System.out.println(dateTime);
-        System.out.println(text);
+        System.out.println("toString" + dateTime.toString());
+        final DateTime dtnow = DateTime.now();
+        dtnow.unitsAllAbsent(Unit.NANOSECONDS);
+        System.out.println("dtnow"+dtnow.toString());
+        final DateTime dt = new DateTime(dtnow.getYear(), dtnow.getMonth(), dtnow.getDay(), dtnow.getHour(), dtnow.getMinute(), dtnow.getSecond(), null);
+        final DateTime ps = dt.plus(0, 0, 0, 8,
+                30, 0, DateTime.DayOverflow.FirstDay);
+        System.out.println("dt"+dt.toString());
+        System.out.println("ps"+ps.toString());
         final Calendar c = Calendar.getInstance();
 
 

@@ -34,7 +34,7 @@ public class TestFreeMarker {
     private static final String FREEMAKER_REF_DOCS = "refDocs";
     public static void main(final String[] args) throws DataException {
         final Map<String, Object> params = new HashMap<>();
-        params.put("sentOn", "2017-11-24 00:00:11.1111111");
+        params.put("sentOn", "2017-11-24 19:00:11.1111111");
         params.put("sentOn1", "2017-11-24 00:06:00");
         params.put("sentOn2", "2017-11-24");
         final Map<String, Object> reqDoc = new  HashMap<>();
@@ -42,7 +42,7 @@ public class TestFreeMarker {
         reqDoc.put("updatedOn", DateTime.now().format(dateTimeFormat));
         final String source = "<#assign updatedOn=addTimeOffset(reqDoc.updatedOn)>"
                 + ""
-                + "\nSent on:${addTimeOffset(sentOn)!''}"
+                + "\nSent on:${addTimeOffset(sentOn).format(\"YYYY-MM-DD\")!''}"
                 + "\nupdated on:${(updatedOn)!\"\"}"
                 + "\nSent on1:${addTimeOffset(sentOn,\"YYYY-MM-DD\")!''}"
                 + "\nSent on1:${addTimeOffset(sentOn1,\"YYYY-MM-DD\")!''}"
