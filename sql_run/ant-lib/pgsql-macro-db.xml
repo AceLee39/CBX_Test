@@ -436,7 +436,10 @@ update CNT_DOMAIN_ATTRIBUTE set value='http' where key ='cpm.server.protocol';
 update CNT_DOMAIN_ATTRIBUTE set value='8080' where key ='cpm.server.port';
 update CNT_DOMAIN_ATTRIBUTE set value='db' where key ='system.serialization.protocol';
 update CNT_DOMAIN_ATTRIBUTE set value='localhost' where key ='resource.redis1.host';
-
+update cnt_attachment set protocol='DB' where protocol='S3';
+update CNT_DOMAIN_ATTRIBUTE set value='DB' where key='system.attachment.protocol';
+UPDATE cnt_domain_attribute SET value='enable' where key='system.command.lightVirtualRouter';
+update cnt_domain_attribute set value='local' where key like 'system.cache.Hcl%.protocol';
             </concat>
             <execsql
                 dbhost="@{dbhost}" dbport="@{dbport}" dbname="@{dbname}"
