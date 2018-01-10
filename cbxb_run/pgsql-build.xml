@@ -153,6 +153,20 @@
                 <echo>Please also run SP_INIT_ROLE_UI_TABLE.sql after generated the security excel!</echo>
             </then>
         </if>
+		
+		<if><available file="${output.dir}" type="dir"/>
+            <then>
+                <mkdir dir="../CBX_Test/cbxb_run/output" />
+                <copy todir="../CBX_Test/cbxb_run/output" preservelastmodified="true">
+                    <fileset dir="${output.dir}">
+                        <include name="**/*"/>
+                    </fileset>
+                </copy>
+            <echo>Copied the output to folder:</echo>
+            <echo>CBX_Test/cbxb_run/output</echo>
+            </then>
+        </if>
+		
     </target>
 
     <target name="clean-export">
@@ -339,6 +353,18 @@
         </if>
         <echo>Generate Reference Data SQL</echo>
         <runGenRefData domainId="${refdata.domainId}"/>
+		<if><available file="${output.dir}" type="dir"/>
+            <then>
+                <mkdir dir="../CBX_Test/cbxb_run/output" />
+                <copy todir="../CBX_Test/cbxb_run/output" preservelastmodified="true">
+                    <fileset dir="${output.dir}">
+                        <include name="**/*"/>
+                    </fileset>
+                </copy>
+            <echo>Copied the output to folder:</echo>
+            <echo>CBX_Test/cbxb_run/output</echo>
+            </then>
+        </if>
     </target>
 
     <!-- Use for Auto build -->

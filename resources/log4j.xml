@@ -152,14 +152,26 @@
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n" />
         </layout>
-    </appender> 
-    
+    </appender>
+
     <appender name="sql" class="org.apache.log4j.rolling.RollingFileAppender">
         <param name="append" value="true" />
         <param name="file" value="logs/sql/sql.log" />
         <param name="encoding" value="UTF-8" />
         <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
              <param name="FileNamePattern"  value="logs/sql/sql.log.%d{yyyy-MM-dd-a}.gz"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n" />
+        </layout>
+    </appender>
+	
+	    <appender name="CommandMessageListener" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="append" value="true" />
+        <param name="file" value="logs/sql/CommandMessageListener.log" />
+        <param name="encoding" value="UTF-8" />
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+             <param name="FileNamePattern"  value="logs/sql/CommandMessageListener.log.%d{yyyy-MM-dd-a}.gz"/>
         </rollingPolicy>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}:%p %t %X{TracingMsg} %c - %m%n" />
@@ -214,8 +226,12 @@
     <category name="jdbc.sqltiming" additivity="true">
         <priority value="INFO"/>
         <appender-ref ref="cntCorelog"/>
-    </category> 
-    
+    </category>
+
+	    <category name="com.core.cbx.command.listener.CommandMessageListener" additivity="true">
+        <priority value="INFO"/>
+        <appender-ref ref="CommandMessageListener"/>
+    </category>
 
     <category name="com.core" additivity="true">
         <priority value="INFO"/>
@@ -256,8 +272,8 @@
     <category name="com.core.cbx.common.timing.LoggingStopWatch" additivity="true">
         <priority value="INFO"/>
         <appender-ref ref="timing"/>
-    </category> 
-    
+    </category>
+
         <category name="com.core.cbx.database" additivity="true">
     <priority value="INFO"/>
     <appender-ref ref="sql"/>
